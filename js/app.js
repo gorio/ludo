@@ -318,7 +318,7 @@ async function createGame() {
     playersConfig.push({ id: null, name: `Slot ${i + 1}`, color: COLORS[i], isAI: false });
   }
 
-  // Preenche o restante com IAs se houver menos de 4 jogadores humanos
+  // Preenche o restante com IAs se houver menos de 4 jogadores (slots)
   while (playersConfig.length < 4) {
     playersConfig.push({ id: `ai_${playersConfig.length}`, name: `IA ${playersConfig.length}`, color: COLORS[playersConfig.length], isAI: true });
   }
@@ -643,7 +643,7 @@ async function rollDice() {
   engine.rollDice();
   state = engine.serialize(); // Atualiza o estado global
   renderGame();
-  logEvent(`${engine.activePlayer.name} rolou ${engine.diceValue}`, engine.activePlayer.color);
+  // logEvent(`${engine.activePlayer.name} rolou ${engine.diceValue}`); // Já logado pela engine
 
   if (gameMode === 'multiplayer' && roomRef) {
     await roomRef.update({ state: state });
@@ -665,14 +665,14 @@ async function doMovePawn(playerIdx, pawnIdx) {
 
   const validMoves = engine.getValidMoves();
   if (!validMoves.includes(pawnIdx)) {
-    logEvent('Movimento inválido para esta peça.', currentPlayer.color);
+    logEvent('Movimento inválido para esta peça.');
     return;
   }
 
   const moveResult = engine.movePawn(pawnIdx);
   state = engine.serialize(); // Atualiza o estado global
   renderGame();
-  logEvent(`${engine.activePlayer.name} moveu peão ${pawnIdx + 1}`, currentPlayer.color);
+  // logEvent(`${engine.activePlayer.name} moveu peão ${pawnIdx + 1}`); // Já logado pela engine
 
   if (gameMode === 'multiplayer' && roomRef) {
     await roomRef.update({ state: state });
@@ -701,7 +701,7 @@ async function doAITurn() {
     engine.rollDice();
     state = engine.serialize();
     renderGame();
-    logEvent(`${engine.activePlayer.name} (IA) rolou ${engine.diceValue}`, engine.activePlayer.color);
+    // logEvent(`${engine.activePlayer.name} (IA) rolou ${engine.diceValue}`); // Já logado pela engine
 
     if (gameMode === 'multiplayer' && roomRef) {
       await roomRef.update({ state: state });
@@ -728,7 +728,7 @@ async function doAITurn() {
       engine.movePawn(pawnIdx);
       state = engine.serialize();
       renderGame();
-      logEvent(`${engine.activePlayer.name} (IA) moveu peão ${pawnIdx + 1}`, engine.activePlayer.color);
+      // logEvent(`${engine.activePlayer.name} (IA) moveu peão ${pawnIdx + 1}`); // Já logado pela engine
 
       if (gameMode === 'multiplayer' && roomRef) {
         await roomRef.update({ state: state });
@@ -749,7 +749,7 @@ async function doAITurn() {
       }
     } else {
       // Caso a IA não encontre um movimento válido (não deveria acontecer se getValidMoves() funcionou)
-      logEvent('IA não encontrou movimento válido e passou a vez.', engine.activePlayer.color);
+      logEvent('IA não encontrou movimento válido e passou a vez.');
       engine.nextTurn(); // Força a passagem de turno
       state = engine.serialize();
       renderGame();

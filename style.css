@@ -19,8 +19,8 @@
   --green:     #2ecc71;
   --yellow:    #f1c40f;
   --radius:    12px;
-  --board:     560px;
-  --cell:      calc(var(--board) / 15);
+  --board:     560px; /* Tamanho base do tabuleiro Ludo */
+  --cell:      calc(var(--board) / 15); /* Tamanho da célula do tabuleiro Ludo */
 }
 
 body {
@@ -566,10 +566,11 @@ body {
   line-height: 1.4;
 }
 
-.log-entry .color-red    { color: var(--red); }
-.log-entry .color-blue   { color: var(--blue); }
-.log-entry .color-green  { color: var(--green); }
-.log-entry .color-yellow { color: var(--yellow); }
+/* Cores do log */
+.log-entry.color-red    { color: var(--red); }
+.log-entry.color-blue   { color: var(--blue); }
+.log-entry.color-green  { color: var(--green); }
+.log-entry.color-yellow { color: var(--yellow); }
 
 .board-area {
   flex-grow: 1;
@@ -624,8 +625,8 @@ body {
 .zone-blue   { background-color: rgba(var(--blue), 0.2); }
 .zone-green  { background-color: rgba(var(--green), 0.2); }
 .zone-yellow { background-color: rgba(var(--yellow), 0.2); }
-.zone-white  { background-color: var(--surface2); }
-.zone-dark   { background-color: var(--border); } /* Centro */
+.zone-neutral  { background-color: var(--surface2); } /* Trilhas neutras */
+.zone-center   { background-color: var(--border); } /* Centro */
 
 /* Casas seguras */
 .ludo-cell.safe {

@@ -71,7 +71,7 @@
           <button class="count-btn" data-count="3">3</button>
           <button class="count-btn" data-count="4">4</button>
         </div>
-        <button id="btn-create" class="btn btn-primary" data-human-players="2">Criar Partida</button>
+        <button id="btn-create" class="btn btn-primary">Criar Partida</button>
       </div>
       <div class="panel-section">
         <h3>Entrar em partida</h3>
@@ -80,16 +80,17 @@
       </div>
       <div class="panel-section">
         <h3>Assistir partida</h3>
-        <input id="input-spectate" type="text" placeholder="Código da sala" class="input-field" maxlength="6"/>
-        <button id="btn-spectate" class="btn btn-ghost">👁 Assistir</button>
+        <input id="input-spectate" type="text" placeholder="Código da sala (6 letras)" class="input-field" maxlength="6"/>
+        <button id="btn-spectate" class="btn btn-secondary">👁 Assistir</button>
       </div>
+      <div id="lobby-error" class="error-msg"></div>
     </div>
 
-    <!-- PAINEL IA -->
+    <!-- PAINEL VS COMPUTADOR -->
     <div id="panel-ai" class="lobby-panel hidden">
       <div class="panel-section">
         <h3>Número de computadores</h3>
-        <div class="player-count-btns">
+        <div class="ai-count-btns">
           <button class="ai-count-btn active" data-ai="1">1 IA</button>
           <button class="ai-count-btn" data-ai="2">2 IAs</button>
           <button class="ai-count-btn" data-ai="3">3 IAs</button>
@@ -97,81 +98,93 @@
         <button id="btn-start-ai" class="btn btn-primary">Jogar contra IA</button>
       </div>
     </div>
-
-    <div id="lobby-error" class="error-msg"></div>
   </main>
 </div>
 
-<!-- ===================== AGUARDANDO ===================== -->
+<!-- ===================== WAITING ===================== -->
 <div id="screen-waiting" class="screen">
   <div class="waiting-card">
     <div class="waiting-icon">🎲</div>
     <h2>Sala criada!</h2>
-    <p>Compartilhe o código:</p>
+    <p>Compartilhe o código com seus amigos:</p>
     <div class="room-code-display" id="display-room-code">------</div>
+    <div class="copy-feedback" id="copy-feedback"></div>
     <button id="btn-copy" class="btn btn-secondary">📋 Copiar código</button>
-    <span id="copy-feedback" class="copy-feedback"></span>
-    <div class="waiting-players" id="waiting-players-list"></div>
-    <p class="waiting-hint">Aguardando jogadores... (<span id="waiting-count">1</span>/<span id="waiting-total">4</span>)</p>
-    <button id="btn-cancel" class="btn btn-ghost">Cancelar</button>
+
+    <div class="waiting-players">
+      <p class="waiting-hint">Aguardando jogadores... (<span id="waiting-count">1</span>/<span id="waiting-total">2</span>)</p>
+      <div id="waiting-players-list"></div>
+    </div>
+
+    <button id="btn-cancel" class="btn btn-danger">Cancelar</button>
   </div>
 </div>
 
 <!-- ===================== GAME ===================== -->
 <div id="screen-game" class="screen">
-  <div class="game-layout">
+  <header class="header">
+    <div class="header-logo">🎲 Ludo Online</div>
+    <div class="header-user">
+      <div class="avatar-wrap">
+        <img id="header-photo" class="header-photo hidden" src="" alt="foto"/>
+        <div id="header-initials" class="header-initials">?</div>
+      </div>
+      <span id="header-username" class="header-name"></span>
+      <button id="btn-logout" class="btn btn-sm">Sair</button>
+    </div>
+  </header>
 
-    <!-- SIDEBAR ESQUERDA -->
-    <aside class="sidebar sidebar-left">
-      <div id="players-list" class="players-list"></div>
-      <div id="log-box" class="log-box">
+  <main class="game-layout">
+    <div class="sidebar">
+      <div class="players-list" id="players-list">
+        <!-- Player cards will be rendered here -->
+      </div>
+      <div class="log-box">
         <div class="log-title">📋 Log</div>
         <div id="log-entries"></div>
       </div>
-    </aside>
+    </div>
 
-    <!-- TABULEIRO -->
     <div class="board-area">
-      <div id="status-bar" class="status-bar"></div>
-      <div id="ludo-board" class="ludo-board"></div>
+      <div class="status-bar" id="status-bar">Sua vez</div>
+      <div class="ludo-board" id="ludo-board">
+        <!-- Ludo board cells and pawns will be rendered here -->
+      </div>
       <div class="dice-area">
-        <div id="dice-display" class="dice-display">🎲</div>
+        <div class="dice-display" id="dice-display">🎲</div>
         <button id="btn-roll" class="btn btn-primary btn-roll">Lançar Dado</button>
       </div>
       <div class="game-actions">
         <button id="btn-resign" class="btn btn-danger">🏳 Desistir</button>
         <button id="btn-new-game" class="btn btn-secondary hidden">Nova Partida</button>
-        <button id="btn-back-lobby" class="btn btn-ghost hidden">← Lobby</button>
+        <button id="btn-back-lobby" class="btn btn-secondary hidden">← Lobby</button>
       </div>
-      <div id="spectator-bar" class="spectator-bar hidden">👁 Assistindo</div>
+      <div id="spectator-bar" class="spectator-bar hidden">👁 Você está assistindo esta partida</div>
     </div>
-
-  </div>
+  </main>
 </div>
 
 <!-- ===================== MODAL GAME OVER ===================== -->
 <div id="modal-gameover" class="modal hidden">
   <div class="modal-card">
-    <div id="gameover-icon" class="gameover-icon">🏆</div>
+    <div class="gameover-icon" id="gameover-icon">🏆</div>
     <h2 id="gameover-title">Fim de Jogo</h2>
     <p id="gameover-msg">Mensagem do fim de jogo.</p>
     <div class="modal-actions">
-      <button id="btn-gameover-new" class="btn btn-primary">Nova Partida</button>
-      <button id="btn-gameover-lobby" class="btn btn-secondary">Lobby</button>
+      <button id="btn-gameover-new" class="btn btn-primary">Jogar Novamente</button>
+      <button id="btn-gameover-lobby" class="btn btn-secondary">Voltar ao Lobby</button>
     </div>
   </div>
 </div>
 
-<!-- ===================== SCRIPTS ===================== -->
-<!-- Firebase App (the core Firebase SDK) -->
+<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<!-- Firebase services -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-<!-- Seus scripts do jogo -->
-<script src="js/ludo-engine.js"></script>
-<script src="js/ludo-ai.js"></script>
+<!-- Game Scripts -->
+<script src="js/ludoengine.js"></script>
+<script src="js/ludoai.js"></script>
 <script src="js/app.js"></script>
 
 </body>
