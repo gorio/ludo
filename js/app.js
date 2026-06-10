@@ -1003,6 +1003,7 @@ function renderLog() {
     const logEntryEl = document.createElement('div');
     logEntryEl.className = `log-entry color-${entry.color}`;
     logEntryEl.textContent = entry.message;
+    logEntryEl.style.color = `var(--${entry.color})`; // Aplica a cor diretamente
     logEntriesEl.appendChild(logEntryEl);
   });
   logEntriesEl.scrollTop = logEntriesEl.scrollHeight; // Scroll para o final
