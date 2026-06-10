@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ludo Online</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -132,24 +132,20 @@
 
     <!-- TABULEIRO -->
     <div class="board-area">
-      <div id="status-bar" class="status-bar">Sua vez</div>
+      <div id="status-bar" class="status-bar"></div>
       <div id="ludo-board" class="ludo-board"></div>
       <div class="dice-area">
         <div id="dice-display" class="dice-display">🎲</div>
-        <button id="btn-roll" class="btn btn-roll">Lançar Dado</button>
-        <div id="dice-result" class="dice-result"></div>
+        <button id="btn-roll" class="btn btn-primary btn-roll">Lançar Dado</button>
       </div>
       <div class="game-actions">
-        <button id="btn-resign" class="btn btn-danger hidden">🏳 Desistir</button>
-        <button id="btn-new-game" class="btn btn-primary hidden">Nova Partida</button>
+        <button id="btn-resign" class="btn btn-danger">🏳 Desistir</button>
+        <button id="btn-new-game" class="btn btn-secondary hidden">Nova Partida</button>
         <button id="btn-back-lobby" class="btn btn-ghost hidden">← Lobby</button>
       </div>
+      <div id="spectator-bar" class="spectator-bar hidden">👁 Assistindo</div>
     </div>
 
-    <!-- SIDEBAR DIREITA -->
-    <aside class="sidebar sidebar-right">
-      <div id="spectator-bar" class="spectator-bar hidden">👁 Assistindo</div>
-    </aside>
   </div>
 </div>
 
@@ -158,21 +154,23 @@
   <div class="modal-card">
     <div id="gameover-icon" class="gameover-icon">🏆</div>
     <h2 id="gameover-title">Fim de Jogo</h2>
-    <p id="gameover-msg"></p>
+    <p id="gameover-msg">Mensagem do fim de jogo.</p>
     <div class="modal-actions">
-      <button id="btn-gameover-new"   class="btn btn-primary">Nova Partida</button>
-      <button id="btn-gameover-lobby" class="btn btn-ghost">Lobby</button>
+      <button id="btn-gameover-new" class="btn btn-primary">Nova Partida</button>
+      <button id="btn-gameover-lobby" class="btn btn-secondary">Lobby</button>
     </div>
   </div>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<!-- ===================== SCRIPTS ===================== -->
+<!-- Firebase App (the core Firebase SDK) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<!-- Firebase services -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-<!-- Ludo Game Scripts -->
-<script src="js/ludo-engine.js"></script> <!-- CORRIGIDO: nome do arquivo -->
+<!-- Seus scripts do jogo -->
+<script src="js/ludo-engine.js"></script>
 <script src="js/ludo-ai.js"></script>
 <script src="js/app.js"></script>
 
