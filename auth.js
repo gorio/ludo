@@ -1,110 +1,133 @@
 /* =====================================================
-   AuthManager - Gerencia a autenticação do usuário.
-   Exporta a classe para ser instanciada uma única vez
-   em `app.js`.
+   AuthManager - Gerencia autenticação de usuário com Firebase.
+   Esta classe NÃO deve ser instanciada globalmente neste arquivo.
+   Sua instância será criada e gerenciada por `app.js`.
 ===================================================== */
 class AuthManager {
-  constructor(db, fbAuth) {
-    this.db = db;
-    this.fbAuth = fbAuth;
-    this._user = null; // Armazena o objeto user do Firebase
+  constructor(firebaseAuth) {
+    this.fbAuth = firebaseAuth;
+    this.uid = null;
+    this.displayName = null;
+    this.photoURL = null;
+    this.isAnonymous = false;
+
+    // Callbacks para notificar o app.js sobre mudanças de estado
+    this.onAuthStateChangedCallbacks = [];
   }
 
-  set user(newUser) {
-    this._user = newUser;
-    // Aqui você pode adicionar lógica para atualizar a UI do header, etc.
-    // Ou simplesmente expor o getter e deixar o app.js fazer a atualização da UI.
+  // Registra um callback para ser chamado quando o estado de autenticação mudar
+  onAuthStateChanged(callback) {
+    this.onAuthStateChangedCallbacks.push(callback);
+    // Dispara o callback imediatamente se o estado já estiver carregado
+    if (this.uid !== null) {
+      callback(this);
+    }
   }
 
-  get user() {
-    return this._user;
+  // Inicializa o listener do Firebase e atualiza o estado interno
+  init() {
+    this.fbAuth.onAuthStateChanged(user => {
+      if (user) {
+        this.uid = user.uid;
+        this.displayName = user.displayName || (user.email ? user.email.split('@')[0] : '') || 'Jogador';
+        this.photoURL = user.photoURL || null;
+        this.isAnonymous = user.isAnonymous;
+        this.updateUserRecord(user.uid, this.displayName, user.email, this.photoURL);
+      } else {
+        this.uid = null;
+        this.displayName = null;
+        this.photoURL = null;
+        this.isAnonymous = false;
+      }
+      this.onAuthStateChangedCallbacks.forEach(callback => callback(this));
+    });
   }
 
-  get uid() {
-    return this._user ? this._user.uid : null;
-  }
-
-  get displayName() {
-    return this._user ? (this._user.displayName || (this._user.email ? this._user.email.split('@')[0] : 'Visitante')) : 'Visitante';
-  }
-
-  get photoURL() {
-    return this._user ? this._user.photoURL : null;
-  }
-
-  get isAnonymous() {
-    return this._user ? this._user.isAnonymous : true;
-  }
-
-  get initials() {
-    const name = this.displayName;
-    return name.split(' ').slice(0, 2).map(w => w[0] ? w[0].toUpperCase() : '').join('') || '?';
-  }
-
+  // Tenta fazer login com e-mail e senha
   async loginWithEmail(email, password) {
     try {
       await this.fbAuth.signInWithEmailAndPassword(email, password);
-      return true;
+      return { success: true };
     } catch (e) {
-      throw this._authErrorMsg(e.code);
+      return { success: false, code: e.code };
     }
   }
 
+  // Tenta fazer login com Google Popup
   async loginWithGoogle() {
     try {
       await this.fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-      return true;
+      return { success: true };
     } catch (e) {
-      if (e.code !== 'auth/popup-closed-by-user') {
-        throw this._authErrorMsg(e.code);
-      }
-      return false; // Usuário fechou o popup
+      return { success: false, code: e.code };
     }
   }
 
+  // Tenta registrar com e-mail e senha
   async registerWithEmail(name, email, password) {
     try {
       const cred = await this.fbAuth.createUserWithEmailAndPassword(email, password);
       await cred.user.updateProfile({ displayName: name });
       await cred.user.reload();
-      return true;
+      return { success: true };
     } catch (e) {
-      throw this._authErrorMsg(e.code);
+      return { success: false, code: e.code };
     }
   }
 
+  // Tenta fazer login anonimamente (visitante)
   async loginAsGuest() {
     try {
       const cred = await this.fbAuth.signInAnonymously();
       await cred.user.updateProfile({ displayName: 'Visitante' });
-      return true;
+      return { success: true };
     } catch (e) {
-      throw 'Erro ao entrar como visitante.';
+      return { success: false, code: e.code };
     }
   }
 
+  // Desloga o usuário atual
   async logout() {
     try {
       await this.fbAuth.signOut();
-      // O onAuthStateChanged em app.js vai lidar com a atualização da UI.
-      return true;
+      return { success: true };
     } catch (e) {
-      console.error('Erro ao fazer logout:', e);
-      throw 'Erro ao sair.';
+      return { success: false, code: e.code };
     }
   }
 
-  _authErrorMsg(code) {
+  // Atualiza o registro do usuário no Realtime Database (apenas para log/convenience)
+  async updateUserRecord(uid, displayName, email, photoURL) {
+    if (!uid) return;
+    const db = firebase.database();
+    return db.ref('users/' + uid).update({
+      displayName: displayName,
+      email: email || '',
+      photoURL: photoURL || '',
+      lastSeen: Date.now()
+    }).catch(e => console.error('Erro ao atualizar user record:', e));
+  }
+
+  // Converte códigos de erro do Firebase Auth para mensagens amigáveis
+  getAuthErrorMessage(code) {
     const msgs = {
       'auth/user-not-found': 'Usuário não encontrado.',
       'auth/wrong-password': 'Senha incorreta.',
       'auth/email-already-in-use': 'E-mail já cadastrado.',
       'auth/invalid-email': 'E-mail inválido.',
-      'auth/weak-password': 'Senha muito fraca (mínimo 6 caracteres).',
+      'auth/weak-password': 'Senha muito fraca (mín: 6 caracteres).',
       'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde.',
-      'auth/cancelled-popup-request': 'Requisição de popup cancelada.',
-      'auth/popup-blocked': 'Popup bloqueado pelo navegador.'
+      'auth/popup-closed-by-user': 'Autenticação cancelada.' // Para Google OAuth
     };
-    return msgs[code] || 'Ocorreu um erro no acesso.';
+    return msgs[code] || 'Erro inesperado. Tente novamente.';
+  }
+
+  // Obtém iniciais do nome para display (ex: "JM" para "João Maria")
+  getInitials() {
+    if (!this.displayName) return '?';
+    const nameParts = this.displayName.split(' ').filter(Boolean);
+    if (nameParts.length === 0) return '?';
+    if (nameParts.length === 1) return nameParts[0][0].toUpperCase();
+    return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
   }
 }

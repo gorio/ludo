@@ -48,7 +48,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column; /* Necessário para o header fixo no topo */
-  align-items: center;
+  align-items: stretch; /* Estende para largura total */
   justify-content: flex-start; /* Alinha o conteúdo ao topo, deixando espaço para o header */
 }
 
@@ -177,6 +177,37 @@ button, input[type="submit"] {
 .logo p  { color: var(--text-muted); margin-top: 6px; font-size: 14px; }
 
 .lobby-actions { display: flex; flex-direction: column; gap: 16px; }
+.mode-selectors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.mode-btn {
+  background: var(--surface2);
+  border: 2px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 16px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  color: var(--text);
+  text-decoration: none; /* remove underline de <a> */
+}
+.mode-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.18);
+}
+.mode-btn.active {
+  background: rgba(233,69,96,0.12);
+  border-color: var(--accent);
+}
+.mode-icon  { font-size: 26px; }
+.mode-label { font-size: 14px; font-weight: 700; }
+.mode-desc  { font-size: 11px; color: var(--text-muted); text-align: center; }
+
 
 .divider {
   display: flex; align-items: center; gap: 12px;
@@ -243,6 +274,30 @@ button, input[type="submit"] {
 }
 .waiting-container h2 { font-size: 22px; }
 .waiting-container p  { color: var(--text-muted); font-size: 14px; }
+.waiting-players {
+  width: 100%;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 10px 15px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.waiting-player-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+.waiting-player-slot.filled {
+  color: var(--text);
+  font-weight: 600;
+}
+
 
 .room-code-box {
   display: flex; align-items: center; gap: 14px;
@@ -274,21 +329,21 @@ button, input[type="submit"] {
   display: flex;
   gap: 24px;
   padding: 24px;
+  flex-grow: 1; /* Ocupa o restante da altura após o header */
   width: 100%;
   max-width: 1300px; /* Aumenta a largura máxima para acomodar Ludo */
-  margin: 0 auto;
-  flex-grow: 1; /* Ocupa o espaço disponível */
+  margin: 0 auto; /* Centraliza */
 }
 
-/* ===== SIDEBAR (para Game Screen) ===== */
+/* ===== SIDEBAR ===== */
 .game-sidebar {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 260px;
+  width: 260px; /* Um pouco mais larga que a anterior */
   flex-shrink: 0;
   height: auto; /* Altura flexível para caber todo o conteúdo */
-  justify-content: flex-start;
+  justify-content: flex-start; /* Alinha ao topo */
   background: var(--surface);
   border-radius: var(--radius);
   padding: 16px;
@@ -300,33 +355,33 @@ button, input[type="submit"] {
   flex-direction: column;
   gap: 10px;
   padding-bottom: 10px;
-  border-bottom: 2px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .player-card {
-  background: var(--surface2);
+  background: var(--surface2); /* Cor de fundo mais clara para o card */
   border-radius: 10px;
   padding: 12px 14px;
   display: flex;
-  align-items: center;
+  align-items: center; /* Alinha itens verticalmente */
   gap: 12px;
   border: 2px solid rgba(255,255,255,0.05);
   transition: border-color 0.3s, box-shadow 0.3s, background-color 0.3s;
 }
 .player-card.active-turn {
-  border-color: var(--accent2);
+  border-color: var(--accent2); /* Cor de destaque do tema */
   box-shadow: 0 0 18px rgba(245,166,35,0.18);
-  background-color: var(--surface);
+  background-color: var(--surface); /* Fundo mais escuro para o jogador ativo */
 }
 
 .player-avatar {
-  font-size: 26px;
+  font-size: 26px; /* Ajustado para Ludo (símbolos ou iniciais) */
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.07);
-  border-radius: 8px;
+  background: rgba(255,255,255,0.07); /* Fundo sutil para o avatar */
+  border-radius: 8px; /* Cantos quadrados */
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: hidden; /* Garante que a foto de perfil se encaixe */
 }
 .player-avatar img {
   width: 100%;
@@ -334,56 +389,61 @@ button, input[type="submit"] {
   object-fit: cover;
 }
 .player-initials {
-  width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700;
-  color: var(--text);
-  /* `background-color` será definido inline com a cor do jogador */
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
 }
+.player-info { flex: 1; min-width: 0; /* Permite que o texto quebre */ }
+.player-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-score { font-size: 12px; color: var(--text-muted); }
 
-
-.player-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.player-name { font-size: 14px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.player-score { font-size: 13px; color: var(--text-muted); }
-
-/* Ludo: Pontuação de peões na base */
+/* LUDO ESPECÍFICO: Indicador de peças na base ou prontas para sair */
 .ludo-score-indicator {
   display: flex;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 3px;
+  margin-top: 5px;
+  min-height: 12px; /* Garante espaço mesmo sem dots */
 }
 .pawn-on-base-dot {
-  width: 10px; height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background-color: var(--text-muted); /* Cor neutra para indicar ausência */
+  background-color: rgba(255,255,255,0.1); /* Cor padrão para peça na base */
   border: 1px solid rgba(0,0,0,0.2);
 }
 .pawn-on-base-dot.ready {
-  background-color: var(--accent2); /* Peça pronta para entrar (laranja/amarelo) */
+  background-color: var(--accent2); /* Brilha quando pronto para sair */
+  box-shadow: 0 0 8px rgba(245,166,35,0.6);
 }
 
 
-/* Histórico de movimentos (Ludo: log de eventos) */
+/* Log de eventos do jogo */
 .log-box {
-  background: var(--surface2);
-  border-radius: 10px;
-  padding: 10px;
-  flex: 1;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  flex: 1; /* Ocupa o espaço restante */
   border: 1px solid rgba(255,255,255,0.05);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 100px;
+  gap: 10px;
 }
 .log-box h3 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: var(--text-muted);
-  text-align: center;
-  padding-bottom: 5px;
-  border-bottom: 2px solid rgba(255,255,255,0.05);
 }
 .log-entries {
   overflow-y: auto;
@@ -391,37 +451,29 @@ button, input[type="submit"] {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
-  /* font-family: inherit; */
+  font-size: 13px;
 }
 .log-entries::-webkit-scrollbar { width: 4px; }
 .log-entries::-webkit-scrollbar-track { background: transparent; }
 .log-entries::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
-
-.log-entry {
-  padding: 2px 4px;
-  border-radius: 3px;
-  line-height: 1.4;
-  word-break: break-word; /* Para garantir que o texto quebre corretamente */
-}
-.log-entry.color-red    { color: var(--ludo-red); }
-.log-entry.color-blue   { color: var(--ludo-blue); }
-.log-entry.color-green  { color: var(--ludo-green); }
-.log-entry.color-yellow { color: var(--ludo-yellow); }
-.log-entry.color-neutral { color: var(--text-muted); }
-.log-entry.color-warning { color: var(--accent2); font-weight: 600; }
+.log-entry { padding: 4px 6px; border-radius: 4px; }
+.log-entry.color-red    { background: rgba(var(--ludo-red-dark), 0.2); color: var(--ludo-red); }
+.log-entry.color-blue   { background: rgba(var(--ludo-blue-dark), 0.2); color: var(--ludo-blue); }
+.log-entry.color-green  { background: rgba(var(--ludo-green-dark), 0.2); color: var(--ludo-green); }
+.log-entry.color-yellow { background: rgba(var(--ludo-yellow-dark), 0.2); color: var(--ludo-yellow); }
+.log-entry.color-neutral { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
 
-/* ===== BOARD AREA - GERAL (para Ludo) ===== */
+/* ===== BOARD AREA LUDO ===== */
 .board-area {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  flex: 1; /* Ocupa o espaço restante central */
+  flex: 1; /* Ocupa a maior parte do espaço lateral */
 }
 
-/* Barra de Status */
+/* Barra de status, pode ter a do Xadrez também */
 .status-bar {
   background: var(--surface);
   border-radius: 8px;
@@ -429,455 +481,167 @@ button, input[type="submit"] {
   font-size: 15px;
   font-weight: 600;
   border: 1px solid rgba(255,255,255,0.06);
-  min-width: 300px;
+  min-width: 300px; /* Garante que tenha um tamanho mínimo */
   text-align: center;
   transition: all 0.3s;
-  width: 100%; /* Ocupa a largura total disponível */
-  max-width: var(--ludo-board-size); /* Limita à largura do tabuleiro para consistência */
+  width: 100%; /* Estende para largura total disponível */
 }
 .status-bar.your-turn { border-color: var(--accent2); color: var(--accent2); }
-.status-bar.check     { border-color: var(--accent);  color: var(--accent); animation: pulse 1s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
-/* ===== LUDO BOARD ESPECÍFICO ===== */
-.ludo-board-wrapper {
-  background: var(--surface); /* Fundo do wrapper para o tabuleiro */
-  border-radius: var(--radius);
-  padding: 20px; /* Espaço ao redor do tabuleiro */
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(255,255,255,0.08);
+/* Thinking indicator (IA) */
+.thinking-dots { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; }
+.thinking-dots span {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background-color: var(--accent2); opacity: 0.5;
+  animation: pulsate 1.4s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-  /* Centraliza o tabuleiro dentro do wrapper se ele for menor */
-  display: flex;
-  justify-content: center;
-  align-items: center;
+@keyframes pulsate {
+  0%, 100% { opacity: 0.5; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
 }
 
-.ludo-board {
-  display: grid;
-  grid-template-columns: repeat(var(--ludo-board-grid-cols, 15), var(--ludo-cell-size));
-  grid-template-rows: repeat(var(--ludo-board-grid-rows, 15), var(--ludo-cell-size));
+/* ===== TABULEIRO LUDO CONTAINER ===== */
+.ludo-board-wrapper {
+  position: relative;
   width: var(--ludo-board-size);
   height: var(--ludo-board-size);
-  background-color: var(--text-muted); /* Fundo do tabuleiro em si (cinza para áreas neutras) */
-  border: 2px solid rgba(255,255,255,0.15);
-  position: relative;
-  overflow: hidden; /* Garante que os conteúdos não vazem */
+  border: 2px solid rgba(255,255,255,0.12);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: repeat(15, var(--ludo-cell-size));
+  grid-template-rows: repeat(15, var(--ludo-cell-size));
+  background-color: var(--surface); /* Fundo do tabuleiro */
+  user-select: none;
 }
 
 .ludo-cell {
   width: var(--ludo-cell-size);
   height: var(--ludo-cell-size);
-  background-color: transparent; /* Padrão transparente para que o grid visível seja feito pelas bordas */
-  border: 1px solid rgba(255,255,255,0.05); /* Linhas do grid */
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: background-color 0.2s; /* Para destaque de movimento */
+  background-color: transparent; /* Padrão, cores serão dadas por classes */
+  border: 1px solid rgba(255,255,255,0.05); /* Pequena linha de grade */
+  transition: background-color 0.1s;
 }
 
-/* Cores das casas de entrada e safepoints */
-.ludo-cell.zone-red { background-color: rgba(var(--ludo-red), 0.2); }
-.ludo-cell.zone-blue { background-color: rgba(var(--ludo-blue), 0.2); }
-.ludo-cell.zone-green { background-color: rgba(var(--ludo-green), 0.2); }
-.ludo-cell.zone-yellow { background-color: rgba(var(--ludo-yellow), 0.2); }
+/* Estilos para as ZONAS DO LUDO (bases e corredores finais) */
+.ludo-cell.zone-red    { background-color: rgba(var(--ludo-red), 0.1); }
+.ludo-cell.zone-blue   { background-color: rgba(var(--ludo-blue), 0.1); }
+.ludo-cell.zone-green  { background-color: rgba(var(--ludo-green), 0.1); }
+.ludo-cell.zone-yellow { background-color: rgba(var(--ludo-yellow), 0.1); }
+.ludo-cell.zone-neutral { background-color: rgba(255,255,255,0.03); } /* Casas do caminho principal */
+.ludo-cell.zone-center { background-color: var(--surface2); } /* Centro final */
 
-/* Centro */
-.ludo-cell.zone-center {
-  background-color: var(--surface2); /* Cor de fundo do centro */
-  border: none; /* remove bordas internas */
-  position: relative;
+
+/* Marcador de Safe Square */
+.ludo-cell.safe {
+  background-image: radial-gradient(circle at center, rgba(255,255,255,0.3) 10%, transparent 11%);
+  background-size: 100% 100%;
 }
-.ludo-board .zone-center:nth-child(even) { /* Para bordas diagonais no centro se desejar */
-   /* border-color: transparent; */
-}
-
-/* Estiliza as bases de cada cor */
-.ludo-cell.zone-red.ludo-base { background-color: var(--ludo-red-dark); }
-.ludo-cell.zone-blue.ludo-base { background-color: var(--ludo-blue-dark); }
-.ludo-cell.zone-green.ludo-base { background-color: var(--ludo-green-dark); }
-.ludo-cell.zone-yellow.ludo-base { background-color: var(--ludo-yellow-dark); }
-
-/* Casa central da base do Ludo (ex: 2x2 no meio do 5x5 de cada base) */
-.ludo-cell[data-row="1"][data-col="1"], .ludo-cell[data-row="1"][data-col="2"],
-.ludo-cell[data-row="2"][data-col="1"], .ludo-cell[data-row="2"][data-col="2"] { background-color: var(--ludo-red);   }
-.ludo-cell[data-row="1"][data-col="12"], .ludo-cell[data-row="1"][data-col="13"],
-.ludo-cell[data-row="2"][data-col="12"], .ludo-cell[data-row="2"][data-col="13"] { background-color: var(--ludo-blue);  }
-.ludo-cell[data-row="12"][data-col="12"], .ludo-cell[data-row="12"][data-col="13"],
-.ludo-cell[data-row="13"][data-col="12"], .ludo-cell[data-row="13"][data-col="13"] { background-color: var(--ludo-green); }
-.ludo-cell[data-row="12"][data-col="1"], .ludo-cell[data-row="12"][data-col="2"],
-.ludo-cell[data-row="13"][data-col="1"], .ludo-cell[data-row="13"][data-col="2"] { background-color: var(--ludo-yellow); }
-
-
-/* Destaque para casas seguras (estrelas) */
 .ludo-cell.safe::after {
-  content: '⭐'; /* Unicode star */
+  content: '⭐'; /* Estrela */
   position: absolute;
   font-size: calc(var(--ludo-cell-size) * 0.6);
   opacity: 0.6;
-  pointer-events: none;
 }
-/* Estilo para a casa de entrada de cada cor */
-.ludo-cell.start-red   { background-color: var(--ludo-red) !important;   }
-.ludo-cell.start-blue  { background-color: var(--ludo-blue) !important;  }
-.ludo-cell.start-green { background-color: var(--ludo-green) !important; }
-.ludo-cell.start-yellow{ background-color: var(--ludo-yellow) !important; }
 
-/* Peões do Ludo */
+/* Estilos para as bases de saída */
+.ludo-cell.zone-red.base-square { background-color: rgba(var(--ludo-red), 0.2); }
+.ludo-cell.zone-blue.base-square { background-color: rgba(var(--ludo-blue), 0.2); }
+.ludo-cell.zone-green.base-square { background-color: rgba(var(--ludo-green), 0.2); }
+.ludo-cell.zone-yellow.base-square { background-color: rgba(var(--ludo-yellow), 0.2); }
+
+/* Marcadores de START_POINTS */
+[data-is-start="red"]    { background-image: radial-gradient(circle at center, var(--ludo-red) 30%, transparent 31%) !important; }
+[data-is-start="blue"]   { background-image: radial-gradient(circle at center, var(--ludo-blue) 30%, transparent 31%) !important; }
+[data-is-start="green"]  { background-image: radial-gradient(circle at center, var(--ludo-green) 30%, transparent 31%) !important; }
+[data-is-start="yellow"] { background-image: radial-gradient(circle at center, var(--ludo-yellow) 30%, transparent 31%) !important; }
+
+/* As casas centrais do Home Path (setas, por exemplo) */
+/* Isso é um pouco mais complexo via CSS e envolveria background-images ou ::after */
+/* Por agora, as cores de zona já dão uma boa indicação. */
+
+
+/* ===== PEÕES (PAWNS) DO LUDO ===== */
 .pawn {
-  position: absolute; /* Para centralizar facilmente na célula */
-  font-size: calc(var(--ludo-cell-size) * 0.75); /* Tamanho do símbolo */
-  line-height: 1; /* Garante que o símbolo não ocupe mais espaço */
-  user-select: none;
-  pointer-events: none; /* Desativa eventos de mouse no peão para focar na célula */
-  color: var(--text); /* Cor do texto dentro do peão */
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); /* Sombra para destacar */
-  z-index: 10;
-}
-
-/* Peões com cores de Ludo (usando filtros e cor do texto para contraste) */
-.pawn.red {    color: var(--ludo-red);    }
-.pawn.blue {   color: var(--ludo-blue);   }
-.pawn.green {  color: var(--ludo-green);  }
-.pawn.yellow { color: var(--ludo-yellow); }
-
-/* Efeito para peça selecionável */
-.pawn.movable {
-  cursor: pointer;
-  pointer-events: all; /* Ativa eventos de mouse para peças que podem ser movidas */
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 8px var(--accent2)); /* Brilho para indicar que é clicável */
-  animation: pulse-pawn 1.5s infinite;
-}
-@keyframes pulse-pawn {
-  0%, 100% { transform: scale(1.1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.8; }
-}
-
-/* Destaque para célular onde a peça está */
-.ludo-cell.pawn-present {
-  background-color: rgba(255,255,255,0.1); /* Destaque leve da célula */
-}
-
-/* Destaque para células de destino válido (Ludo) */
-.ludo-cell.highlight-move {
-  background-color: rgba(245,166,35,0.2) !important; /* Cor de destaque para movimento (laranja/amarelo) */
-  cursor: pointer;
-  border: 2px solid var(--accent2);
-}
-.ludo-cell.highlight-capture {
-  background-color: rgba(233,69,96,0.2) !important; /* Cor de destaque para captura (vermelho) */
-  cursor: pointer;
-  border: 2px solid var(--accent);
-}
-
-/* Área de Dados e Controles */
-.dice-area {
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(255,255,255,0.08);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  max-width: 200px; /* Limita largura do dado */
-}
-
-#dice-display {
-  font-size: 60px;
-  color: var(--accent2); /* Cor de destaque para o dado */
-  width: 80px; height: 80px;
-  display: flex; align-items: center; justify-content: center;
-  border: 3px solid var(--accent2);
-  border-radius: 12px;
-  background-color: var(--surface2);
-  user-select: none;
-}
-
-.game-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  width: 100%;
-}
-.game-actions .btn {
-  flex: 1; /* Garante que os botões compartilhem o espaço */
-}
-
-/* ===== AUTH ===== */
-.auth-container {
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 48px 40px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.auth-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  background: rgba(255,255,255,0.05);
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.auth-tab {
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  padding: 9px;
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.auth-tab.active {
-  background: var(--surface2);
-  color: var(--text);
-}
-
-.auth-panel { display: flex; flex-direction: column; gap: 12px; }
-.auth-panel.hidden { display: none; }
-
-.form-group { display: flex; flex-direction: column; }
-
-.form-input {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
-  padding: 13px 16px;
-  color: var(--text);
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-input:focus { border-color: var(--accent); }
-.form-input::placeholder { color: var(--text-muted); }
-
-.btn-google {
-  background: #fff;
-  color: #333;
-  border: none;
+  position: relative; /* Para centralizar o símbolo */
+  width: calc(var(--ludo-cell-size) * 0.7);
+  height: calc(var(--ludo-cell-size) * 0.7);
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 15px;
-  padding: 13px;
-  border-radius: 8px;
+  font-size: calc(var(--ludo-cell-size) * 0.4); /* Tamanho do emoji/símbolo */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  z-index: 5; /* Garante que peões fiquem acima das células */
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  cursor: default; /* Padrão, muda para pointer quando movable */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.pawn.red    { background-color: var(--ludo-red);    }
+.pawn.blue   { background-color: var(--ludo-blue);   }
+.pawn.green  { background-color: var(--ludo-green);  }
+.pawn.yellow { background-color: var(--ludo-yellow); }
+
+/* Para peões que podem ser movidos */
+.pawn.movable {
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow: 0 0 12px var(--accent2); /* Brilho para indicar que é clicável */
+  transform: scale(1.1); /* Um pequeno "zoom" */
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
 }
+.pawn.movable:hover { transform: scale(1.15); box-shadow: 0 0 16px var(--accent2); }
 
-.btn-google:hover { background: #f0f0f0; transform: translateY(-1px); }
 
-.auth-note { font-size: 12px; color: var(--text-muted); text-align: center; }
-
-/* ===== HISTÓRICO / PARTIDAS AO VIVO ===== */
-.history-layout {
+/* Area do dado */
+.dice-area {
   display: flex;
   flex-direction: column;
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 32px 24px;
-  gap: 24px;
-  width: 100%;
-}
-
-.history-header {
-  display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.history-header h2 { flex: 1; font-size: 22px; }
-
-.history-stats {
-  display: flex;
-  gap: 12px;
-}
-
-.stat {
-  font-size: 13px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.06);
-}
-
-.stat-win  { color: #4ade80; background: rgba(74,222,128,0.1); }
-.stat-draw { color: var(--accent2); background: rgba(245,166,35,0.1); }
-.stat-loss { color: var(--accent); background: rgba(233,69,96,0.1); }
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.history-loading,
-.history-empty {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 48px 24px;
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-.history-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  gap: 20px;
   background: var(--surface);
-  border-radius: 10px;
-  padding: 16px 20px;
-  border: 1px solid rgba(255,255,255,0.05);
-  transition: border-color 0.2s, transform 0.15s;
-}
-
-.history-card:hover {
-  border-color: rgba(255,255,255,0.12);
-  transform: translateY(-1px);
-}
-
-.history-card-left  { display: flex; flex-direction: column; gap: 4px; min-width: 100px; }
-.history-card-center { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.history-card-right  { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-
-.history-result { font-size: 14px; font-weight: 700; }
-.result-win  { color: #4ade80; }
-.result-draw { color: var(--accent2); }
-.result-loss { color: var(--accent); }
-
-.history-opponent { font-size: 13px; color: var(--text-muted); }
-.history-mode     { font-size: 13px; color: var(--text); }
-.history-moves    { font-size: 12px; color: var(--text-muted); }
-.history-date     { font-size: 12px; color: var(--text-muted); }
-
-/* ===== ESPECTADOR BAR ===== */
-.spectator-bar {
-  text-align: center;
-  background: rgba(74,222,128,0.12);
-  border: 1px solid rgba(74,222,128,0.25);
-  color: #4ade80;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 12px;
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.06);
   width: 100%;
-  max-width: var(--ludo-board-size); /* Alinha com a largura do tabuleiro */
 }
-
-/* ===== MODO SELECTOR (Lobby) ===== */
-.mode-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.mode-btn {
-  background: rgba(255,255,255,0.04);
-  border: 2px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  padding: 16px 12px;
-  cursor: pointer;
+#dice-display {
+  font-size: 60px;
+  text-align: center;
+  width: 100px;
+  height: 100px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  transition: all 0.2s;
-  color: var(--text);
-  font-size: 14px; /* Tamanho da fonte para manter padrão */
-}
-
-.mode-btn:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.18);
-}
-
-.mode-btn.active {
-  background: rgba(233,69,96,0.12);
-  border-color: var(--accent);
-}
-
-.mode-icon  { font-size: 26px; }
-.mode-label { font-size: 14px; font-weight: 700; }
-.mode-desc  { font-size: 11px; color: var(--text-muted); text-align: center; }
-
-/* ===== PAINÉIS DE MODO (Lobby) ===== */
-.mode-panel { display: flex; flex-direction: column; gap: 14px; }
-.mode-panel.hidden { display: none; }
-.btn-full { width: 100%; justify-content: center; text-align: center; }
-
-/* ===== OPÇÕES DE JOGADORES/IA ===== */
-.option-group { display: flex; flex-direction: column; gap: 10px; }
-
-.option-label {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-muted);
-}
-
-.player-count-btns, .ai-count-btns {
-  display: flex;
-  gap: 8px;
-}
-.player-count-btns .btn, .ai-count-btns .btn {
-  flex: 1; /* Distribui os botões igualmente */
+  justify-content: center;
   background: var(--surface2);
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
   color: var(--text);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 10px 14px;
-}
-.player-count-btns .btn:hover, .ai-count-btns .btn:hover {
-  background: #1a4a80;
-}
-.player-count-btns .btn.active, .ai-count-btns .btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
+  margin-bottom: 10px;
 }
 
-/* Thinking indicator */
-.thinking-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-}
-.thinking-dots span {
-  display: inline-block;
-  width: 5px; height: 5px;
-  background: var(--accent2);
-  border-radius: 50%;
-  animation: bounce 1.2s ease-in-out infinite;
-}
-.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%            { transform: scale(1);   opacity: 1;   }
-}
 
-/* ===== MODAL DE GAMEOVER ===== */
+
+/* ===== GAME CONTROLS ===== */
+.game-actions { display: flex; gap: 14px; margin-top: auto; } /* margin-top: auto para empurrar para baixo */
+
+/* ===== MODALS ===== */
 .modal {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.72);
@@ -898,175 +662,176 @@ button, input[type="submit"] {
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  max-width: 380px;
+  max-width: 420px;
   width: 92%;
 }
 .modal-box h3 { font-size: 20px; }
 .modal-box p  { color: var(--text-muted); font-size: 14px; }
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+  justify-content: center;
+}
+.modal-actions .btn {
+  flex-grow: 1; /* Permite que os botões se expandam */
+}
+
 .gameover-icon { font-size: 60px; filter: drop-shadow(0 0 14px var(--accent)); }
 #gameover-title { font-size: 26px; }
 #gameover-msg   { color: var(--text-muted); }
 
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  margin-top: 10px;
-  flex-wrap: wrap; /* Para lidar com botões em telas pequenas */
-}
-.modal-actions .btn {
-  flex: 1;
-  min-width: 120px; /* Garante tamanho mínimo para botões */
-}
-
 /* ===== MISC ===== */
 .error-msg { color: var(--accent); font-size: 13px; text-align: center; min-height: 18px; }
-.lobby-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  padding: 24px;
-}
 
-
-/* ===== RESPONSIVIDADE ===== */
-
-@media (max-width: 900px) {
-  .app-header {
-    padding: 10px 15px;
-  }
-  .header-logo {
-    font-size: 16px;
-  }
-  .header-username {
-    max-width: 100px;
-  }
-
+/* ===== RESPONSIVE — TABLET ===== */
+@media (max-width: 1024px) {
   .game-layout {
-    flex-direction: column;
+    flex-direction: column; /* Colunas viram linhas */
     align-items: center;
     padding: 15px;
     gap: 15px;
   }
   .game-sidebar {
     width: 100%;
-    flex-direction: row; /* Itens da sidebar em linha */
-    flex-wrap: wrap;
-    justify-content: center;
-    order: 2; /* Move a sidebar para baixo no layout de coluna */
+    max-width: var(--ludo-board-size); /* Limita a largura da sidebar à do tabuleiro */
+    flex-direction: row; /* Itens da sidebar ficam lado a lado */
+    flex-wrap: wrap; /* Permite quebrar em várias linhas */
     height: auto;
-    max-height: fit-content;
-    gap: 15px;
-    padding: 10px;
+    max-height: fit-content; /* Para que caiba o conteúdo */
+    gap: 15px; /* Ajusta o gap entre os elementos da sidebar */
   }
   .players-list {
-    flex-direction: row; /* Jogadores em linha uns dos outros */
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    border-bottom: none; /* Remove barra embaixo dos jogadores */
+      flex-direction: row; /* Jogadores em linha */
+      flex-wrap: wrap;
+      flex-grow: 1;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
   }
-  .player-card {
-    flex: 1 1 calc(50% - 10px); /* Dois cards por linha em telas menores */
-    max-width: 200px;
-  }
-  .player-info {
-    max-width: calc(100% - 60px); /* Para prevenir overflow */
-  }
+  .player-card { flex-basis: calc(50% - 5px); /* Divide em duas colunas */ }
 
   .log-box {
-    width: 100%;
-    max-height: 150px; /* Limita altura do log em mobile */
-    flex-grow: 0;
-    margin-top: 10px; /* Adiciona um espaço */
+      width: 100%;
+      max-height: 180px; /* Limita altura do log em mobile */
+      flex-grow: 0; /* Não cresce desnecessariamente */
   }
   .board-area {
-    order: 1;
-    gap: 10px;
+      order: -1; /* Move a área do tabuleiro para o topo em telas menores */
+      gap: 15px;
+      width: 100%;
   }
-
-  .status-bar, .spectator-bar {
-    font-size: 14px;
-    padding: 8px 15px;
-    margin-bottom: 5px;
-    max-width: 100%; /* Permite que ocupe a largura total */
+  .status-bar {
+      font-size: 1em;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      min-width: 0;
   }
   .ludo-board-wrapper {
-    --ludo-board-size: min(95vw, 450px); /* Reduz o tamanho do tabuleiro no mobile */
-    --ludo-cell-size: calc(var(--ludo-board-size) / 15);
-    padding: 10px;
-    border-radius: 8px;
+      --ludo-board-size: min(95vw, 500px); /* Ajusta tamanho do tabuleiro */
+      padding: 10px;
   }
-  #dice-display {
-    font-size: 50px;
-    width: 70px; height: 70px;
+  .dice-area {
+      flex-direction: row; /* Componentes do dado lado a lado */
+      gap: 15px;
+      padding: 10px 20px;
+      justify-content: center;
   }
   .game-actions {
-    flex-wrap: wrap;
-    justify-content: center;
+      flex-wrap: wrap;
+      justify-content: center;
   }
   .game-actions .btn {
-    flex: 1 1 auto;
-    min-width: 120px;
-    font-size: 0.9em;
+      flex-grow: 1;
+      min-width: 120px;
+      font-size: 0.9em;
   }
-
   .history-card {
-    flex-direction: column;
-    align-items: flex-start;
+      flex-direction: column;
+      align-items: flex-start;
   }
   .history-card-right {
-    width: 100%;
-    align-items: flex-end;
-    flex-direction: row;
-    justify-content: space-between;
-  }
-  .history-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-  }
-  .history-header h2 {
-    font-size: 1.5em;
-  }
-  .modal-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  /* Ajustes específicos para o tabuleiro de Ludo em telas muito pequenas */
-  .pawn {
-    font-size: calc(var(--ludo-cell-size) * 0.7); /* Reduz o texto do peão */
+      width: 100%;
+      align-items: flex-end;
+      flex-direction: row;
+      justify-content: space-between;
   }
 }
 
-@media (max-width: 600px) {
-  .lobby-container, .waiting-container, .auth-container, .modal-box {
-    padding: 30px 20px;
+@media (max-width: 700px) {
+  .app-header {
+    padding: 10px 15px;
   }
-  .logo h1 { font-size: 26px; }
-  .mode-btn { padding: 12px 8px; font-size: 13px; }
-  .mode-icon { font-size: 22px; }
-  .mode-desc { display: none; } /* Esconde descrição completa */
+  .header-logo {
+    font-size: 1.2em;
+  }
+  .header-username {
+    max-width: 80px;
+  }
+  .auth-container, .lobby-container, .waiting-container, .history-container, .modal-box {
+      padding: 25px;
+  }
+  .logo h1 {
+      font-size: 2em;
+  }
+  .mode-selectors {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+  .mode-btn {
+      padding: 10px 10px;
+      font-size: 0.9em;
+  }
+  .mode-btn .mode-icon {
+      font-size: 1.5em;
+  }
+  .mode-btn .mode-desc {
+      display: none; /* Esconde descrição para economizar espaço */
+  }
+  .lobby-actions .option-group { /* Grupos de opção no lobby */
+    flex-direction: column;
+    gap: 8px;
+  }
+  .player-count-btns, .ai-count-btns, .color-selector {
+      flex-wrap: wrap; gap: 8px;
+  }
+  .player-count-btns .btn, .ai-count-btns .btn, .color-selector .color-btn {
+    flex-basis: calc(50% - 4px); /* Dois botões por linha */
+    padding: 8px 5px;
+    font-size: 13px;
+  }
+  .room-code-box {
+      flex-direction: column; gap: 10px;
+  }
+  #display-room-code {
+      font-size: 1.8em;
+  }
+  .waiting-players {
+      padding: 8px;
+      font-size: 13px;
+  }
+  .history-header {
+      flex-direction: column; text-align: center; gap: 10px;
+  }
+  .history-header h2 { font-size: 1.5em; }
+  .modal-actions { flex-direction: column; gap: 10px; margin-top: 15px; }
 
-  .player-count-btns, .ai-count-btns { flex-wrap: wrap; gap: 8px; }
-  .player-count-btns .btn, .ai-count-btns .btn { flex-basis: calc(50% - 4px); } /* 2 botoes por linha */
+  /* Ajustes específicos para o tabuleiro de Ludo em telas muito pequenas */
+  .pawn {
+      font-size: 0.7em; /* Reduz o texto do peão */
+      border-width: 1px; /* Borda mais fina */
+  }
+  .dice-area {
+    flex-direction: column; /* Dado e botão de rolar voltam a ser em coluna */
+    gap: 10px;
+  }
+  #dice-display {
+    font-size: 40px;
+    width: 60px;
+    height: 60px;
+  }
 
-  .room-code-box { flex-direction: column; gap: 8px; }
-  #display-room-code { font-size: 1.6em; letter-spacing: 5px; }
-
-  .waiting-players-list { margin-top: 10px; }
-
-  .player-card { flex-direction: column; text-align: center; gap: 8px; }
-  .player-avatar { margin-right: 0; }
-  .player-info { width: 100%; }
-
-  .dice-area { max-width: 150px; }
-  #dice-display { font-size: 40px; width: 60px; height: 60px; }
-
-  .game-actions .btn {
-    flex: 1 1 100%; /* Um botão por linha se for muito estreito */
+  .game-sidebar .player-card {
+    flex-basis: 100%; /* Cartões de jogador em uma única coluna em telas bem pequenas */
   }
 }
