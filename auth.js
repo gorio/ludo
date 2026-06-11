@@ -1,36 +1,64 @@
 /* =====================================================
-   AuthManager - Gerencia a autenticação e dados do usuário
+   AuthManager - Gerencia a autenticação do usuário.
+   Exporta a classe para ser instanciada uma única vez
+   em `app.js`.
 ===================================================== */
 class AuthManager {
-  constructor() {
-    this.user = null;
-    this.db = firebase.database();
-    this.fbAuth = firebase.auth();
-
-    this.initFirebaseListeners();
+  constructor(db, fbAuth) {
+    this.db = db;
+    this.fbAuth = fbAuth;
+    this._user = null; // Armazena o objeto user do Firebase
   }
 
-  initFirebaseListeners() {
-    // Isso será manipulado pelo `app.js` agora para evitar duplicação de listeners
+  set user(newUser) {
+    this._user = newUser;
+    // Aqui você pode adicionar lógica para atualizar a UI do header, etc.
+    // Ou simplesmente expor o getter e deixar o app.js fazer a atualização da UI.
+  }
+
+  get user() {
+    return this._user;
+  }
+
+  get uid() {
+    return this._user ? this._user.uid : null;
+  }
+
+  get displayName() {
+    return this._user ? (this._user.displayName || (this._user.email ? this._user.email.split('@')[0] : 'Visitante')) : 'Visitante';
+  }
+
+  get photoURL() {
+    return this._user ? this._user.photoURL : null;
+  }
+
+  get isAnonymous() {
+    return this._user ? this._user.isAnonymous : true;
+  }
+
+  get initials() {
+    const name = this.displayName;
+    return name.split(' ').slice(0, 2).map(w => w[0] ? w[0].toUpperCase() : '').join('') || '?';
   }
 
   async loginWithEmail(email, password) {
     try {
       await this.fbAuth.signInWithEmailAndPassword(email, password);
+      return true;
     } catch (e) {
-      throw this.authErrorMsg(e.code);
+      throw this._authErrorMsg(e.code);
     }
   }
 
   async loginWithGoogle() {
     try {
       await this.fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      return true;
     } catch (e) {
       if (e.code !== 'auth/popup-closed-by-user') {
-        throw this.authErrorMsg(e.code);
-      } else {
-        throw 'Login com Google cancelado.';
+        throw this._authErrorMsg(e.code);
       }
+      return false; // Usuário fechou o popup
     }
   }
 
@@ -39,15 +67,9 @@ class AuthManager {
       const cred = await this.fbAuth.createUserWithEmailAndPassword(email, password);
       await cred.user.updateProfile({ displayName: name });
       await cred.user.reload();
-      // Inicializa estatísticas de Ludo para o novo usuário
-      await this.db.ref('users/' + cred.user.uid).update({
-        ludoGamesPlayed: 0,
-        ludoWins: 0,
-        ludoLosses: 0,
-        // ludoDraws (se aplicavel, adicione aqui como 0)
-      });
+      return true;
     } catch (e) {
-      throw this.authErrorMsg(e.code);
+      throw this._authErrorMsg(e.code);
     }
   }
 
@@ -55,52 +77,34 @@ class AuthManager {
     try {
       const cred = await this.fbAuth.signInAnonymously();
       await cred.user.updateProfile({ displayName: 'Visitante' });
-      // Não cria estatísticas de Ludo para visitantes.
+      return true;
     } catch (e) {
       throw 'Erro ao entrar como visitante.';
     }
   }
 
-  logout() {
-    this.fbAuth.signOut();
+  async logout() {
+    try {
+      await this.fbAuth.signOut();
+      // O onAuthStateChanged em app.js vai lidar com a atualização da UI.
+      return true;
+    } catch (e) {
+      console.error('Erro ao fazer logout:', e);
+      throw 'Erro ao sair.';
+    }
   }
 
-  authErrorMsg(code) {
+  _authErrorMsg(code) {
     const msgs = {
       'auth/user-not-found': 'Usuário não encontrado.',
       'auth/wrong-password': 'Senha incorreta.',
       'auth/email-already-in-use': 'E-mail já cadastrado.',
       'auth/invalid-email': 'E-mail inválido.',
-      'auth/weak-password': 'Senha muito fraca.',
-      'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
-      'auth/operation-not-allowed': 'Autenticação por e-mail/senha não está habilitada.',
-      'auth/account-exists-with-different-credential': 'Conta já existe com outra forma de login (e.g., Google).',
-      'auth/cancelled-popup-request': 'Requisição de popup de login cancelada.',
-      'auth/popup-closed-by-user': 'Popup de login fechado pelo usuário.',
+      'auth/weak-password': 'Senha muito fraca (mínimo 6 caracteres).',
+      'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde.',
+      'auth/cancelled-popup-request': 'Requisição de popup cancelada.',
+      'auth/popup-blocked': 'Popup bloqueado pelo navegador.'
     };
-    return msgs[code] || 'Ocorreu um erro desconhecido na autenticação: ' + code;
-  }
-
-  // Getters para informações do usuário logado
-  get uid() {
-    return this.user?.uid || null;
-  }
-  get displayName() {
-    return this.user?.displayName || 'Visitante';
-  }
-  get photoURL() {
-    return this.user?.photoURL || null;
-  }
-  get email() {
-    return this.user?.email || null;
-  }
-  get isAnonymous() {
-    return this.user?.isAnonymous || true;
-  }
-
-  // Retorna as iniciais do nome, útil para avatares placeholder
-  get initials() {
-    const name = this.displayName;
-    return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    return msgs[code] || 'Ocorreu um erro no acesso.';
   }
 }

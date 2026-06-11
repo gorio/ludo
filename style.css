@@ -6,39 +6,39 @@
 }
 
 :root {
-  /* Tema Xadrez (dark) -> Agora padrão para todo o site */
-  --bg:        #1a1a2e;
-  --surface:   #16213e;
-  --surface2:  #0f3460;
-  --accent:    #e94560; /* Cor principal de ação/destaque (vermelho/rosa) */
-  --accent2:   #f5a623; /* Cor secundária de destaque (laranja/amarelo) */
-  --text:      #eaeaea;
-  --text-muted:#8892a4;
-  --light-sq:  #f0d9b5; /* Cor das casas claras do tabuleiro de xadrez */
-  --dark-sq:   #b58863; /* Cor das casas escuras do tabuleiro de xadrez */
-  --highlight: rgba(255,255,0,0.4); /* Destaque geral, ex: último lance */
-  --move-hint: rgba(0,0,0,0.22); /* Ponto de movimento */
-  --selected:  rgba(20,85,30,0.55);
-  --check:     rgba(220,20,60,0.55);
-  --radius:    12px;
-  --shadow:    0 8px 32px rgba(0,0,0,0.45);
+  /* TEMA CHESS/DARK (BASE PARA TODO O SITE) */
+  --bg:        #1a1a2e; /* Fundo principal escuro */
+  --surface:   #16213e; /* Superfícies de cards e modais */
+  --surface2:  #0f3460; /* Superfícies secundárias, mais escuras */
+  --accent:    #e94560; /* Cor principal de ação/destaque (vermelho/rosa avermelhado) */
+  --accent2:   #f5a623; /* Cor secundária de destaque (laranja/amarelo vibrante) */
+  --text:      #eaeaea; /* Cor do texto principal (branco acinzentado) */
+  --text-muted:#8892a4; /* Cor do texto secundário/neutro */
+  --light-sq:  #f0d9b5; /* Cor das casas claras do tabuleiro de xadrez (não usado no Ludo) */
+  --dark-sq:   #b58863; /* Cor das casas escuras do tabuleiro de xadrez (não usado no Ludo) */
+  --highlight: rgba(255,255,0,0.4); /* Destaque geral, ex: último lance (ainda pode ser útil) */
+  --move-hint: rgba(0,0,0,0.22); /* Ponto de movimento (ainda pode ser útil) */
+  --selected:  rgba(20,85,30,0.55); /* Seleção de item/casa */
+  --check:     rgba(220,20,60,0.55); /* Indicação de xeque */
+  --radius:    12px; /* Raio de borda padrão */
+  --shadow:    0 8px 32px rgba(0,0,0,0.45); /* Sombra padrão */
 
-  /* Tamanho do tabuleiro (para Xadrez, se ativado) */
-  --board-size: min(62vw, 600px);
+  /* Tamanho base do tabuleiro de Xadrez (se ativo) */
+  --board-size-chess: min(62vw, 600px);
 
-  /* NOSSAS CORES LUDO (para integração com o tema dark) */
-  --ludo-red:     #e74c3c; /* Vermelho mais vibrante */
-  --ludo-red-dark:#c0392b;
-  --ludo-blue:    #3498db; /* Azul original */
-  --ludo-blue-dark:#2980b9;
-  --ludo-green:   #2ecc71; /* Verde original */
-  --ludo-green-dark:#27ae60;
-  --ludo-yellow:  #f1c40f; /* Amarelo original */
-  --ludo-yellow-dark:#f39c12;
+  /* CORES LUDO (adaptadas ao tema Dark) */
+  --ludo-red:     #e74c3c; /* Vermelho vibrante */
+  --ludo-red-dark:#c0392b; /* Vermelho escuro */
+  --ludo-blue:    #3498db; /* Azul vibrante */
+  --ludo-blue-dark:#2980b9; /* Azul escuro */
+  --ludo-green:   #2ecc71; /* Verde vibrante */
+  --ludo-green-dark:#27ae60; /* Verde escuro */
+  --ludo-yellow:  #f1c40f; /* Amarelo vibrante */
+  --ludo-yellow-dark:#f39c12; /* Amarelo escuro */
 
-  /* Tamanho base do tabuleiro Ludo para cálculo */
-  --ludo-board-base-size: min(90vh, 90vw, 700px); /* Ajustado para ser mais flexível */
-  --cell-size: calc(var(--ludo-board-base-size) / 15);
+  /* Tamanho do tabuleiro Ludo (baseado em 15x15) */
+  --ludo-board-size: min(90vh, 90vw, 700px); /* Garante que o tabuleiro caiba na tela */
+  --ludo-cell-size: calc(var(--ludo-board-size) / 15);
 }
 
 body {
@@ -47,13 +47,107 @@ body {
   color: var(--text);
   min-height: 100vh;
   display: flex;
-  flex-direction: column; /* Necessário para header sticky e conteúdo flex */
+  flex-direction: column; /* Necessário para o header fixo no topo */
   align-items: center;
-  justify-content: flex-start; /* Alinha ao topo para deixar espaço para o header */
+  justify-content: flex-start; /* Alinha o conteúdo ao topo, deixando espaço para o header */
 }
 
+/* ===== GLOBAL UI ELEMENTS ===== */
+button, input[type="submit"] {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  outline: none;
+}
+
+/* ===== HEADER DO APP (NOVO, para ser fixo no topo) ===== */
+.app-header {
+  position: sticky; /* ou `fixed` se for para sempre ficar visível */
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(22,33,62,0.95); /* Fundo semi-transparente do tema */
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.app-header.hidden { display: none; } /* Para esconder o header em telas de auth */
+
+.header-logo {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text); /* Cor do texto do tema */
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-username {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-avatar-wrap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.header-photo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.15);
+  display: block;
+  transition: border-color 0.2s;
+}
+
+.header-photo:hover {
+  border-color: var(--accent);
+}
+
+.header-initials {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 2px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.header-photo.hidden {
+  display: none !important;
+}
+
+
 /* ===== SCREENS ===== */
-.screen { display: none; width: 100%; min-height: calc(100vh - 57px); align-items: center; justify-content: center; padding-top: 20px; }
+.screen {
+  display: none;
+  width: 100%;
+  flex-grow: 1; /* Ocupa o espaço restante após o header */
+  align-items: center;
+  justify-content: center;
+  padding: 24px; /* Adiciona padding geral para não encostar nas bordas */
+}
 .screen.active { display: flex; }
 
 /* ===== LOBBY ===== */
@@ -77,6 +171,7 @@ body {
   display: block;
   margin-bottom: 10px;
   filter: drop-shadow(0 0 14px var(--accent)); /* Usa a cor de destaque do tema */
+  color: var(--text); /* Garante que o ícone é da cor do texto padrão */
 }
 .logo h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
 .logo p  { color: var(--text-muted); margin-top: 6px; font-size: 14px; }
@@ -174,26 +269,26 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== GAME LAYOUT ===== */
+/* ===== GAME LAYOUT (geral para o jogo em si) ===== */
 .game-layout {
   display: flex;
   gap: 24px;
   padding: 24px;
-  min-height: calc(100vh - 57px); /* Considerando o header fixo */
   width: 100%;
   max-width: 1300px; /* Aumenta a largura máxima para acomodar Ludo */
   margin: 0 auto;
+  flex-grow: 1; /* Ocupa o espaço disponível */
 }
 
-/* ===== SIDEBAR ===== */
+/* ===== SIDEBAR (para Game Screen) ===== */
 .game-sidebar {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 260px; /* Um pouco mais larga que a anterior */
+  width: 260px;
   flex-shrink: 0;
   height: auto; /* Altura flexível para caber todo o conteúdo */
-  justify-content: flex-start; /* Alinha ao topo */
+  justify-content: flex-start;
   background: var(--surface);
   border-radius: var(--radius);
   padding: 16px;
@@ -205,33 +300,33 @@ body {
   flex-direction: column;
   gap: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 2px solid rgba(255,255,255,0.05);
 }
 
 .player-card {
-  background: var(--surface2); /* Cor de fundo mais clara para o card */
+  background: var(--surface2);
   border-radius: 10px;
   padding: 12px 14px;
   display: flex;
-  align-items: center; /* Alinha itens verticalmente */
+  align-items: center;
   gap: 12px;
   border: 2px solid rgba(255,255,255,0.05);
   transition: border-color 0.3s, box-shadow 0.3s, background-color 0.3s;
 }
 .player-card.active-turn {
-  border-color: var(--accent2); /* Cor de destaque do tema */
+  border-color: var(--accent2);
   box-shadow: 0 0 18px rgba(245,166,35,0.18);
-  background-color: var(--surface); /* Fundo mais escuro para o jogador ativo */
+  background-color: var(--surface);
 }
 
 .player-avatar {
-  font-size: 26px; /* Ajustado para Ludo (símbolos) */
+  font-size: 26px;
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.07); /* Fundo sutil para o avatar */
+  background: rgba(255,255,255,0.07);
   border-radius: 8px;
   flex-shrink: 0;
-  overflow: hidden; /* Garante que a foto de perfil se encaixe */
+  overflow: hidden;
 }
 .player-avatar img {
   width: 100%;
@@ -239,11 +334,11 @@ body {
   object-fit: cover;
 }
 .player-initials {
-    width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700;
-    color: var(--text);
-    /* `background-color` será definido inline com a cor do jogador */
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  color: var(--text);
+  /* `background-color` será definido inline com a cor do jogador */
 }
 
 
@@ -260,11 +355,11 @@ body {
 .pawn-on-base-dot {
   width: 10px; height: 10px;
   border-radius: 50%;
-  background-color: var(--text-muted); /* Cor neutra */
+  background-color: var(--text-muted); /* Cor neutra para indicar ausência */
   border: 1px solid rgba(0,0,0,0.2);
 }
 .pawn-on-base-dot.ready {
-  background-color: var(--accent2); /* Peça pronta para entrar */
+  background-color: var(--accent2); /* Peça pronta para entrar (laranja/amarelo) */
 }
 
 
@@ -273,7 +368,7 @@ body {
   background: var(--surface2);
   border-radius: 10px;
   padding: 10px;
-  flex: 1; /* Ocupa o espaço restante */
+  flex: 1;
   border: 1px solid rgba(255,255,255,0.05);
   overflow: hidden;
   display: flex;
@@ -288,7 +383,7 @@ body {
   color: var(--text-muted);
   text-align: center;
   padding-bottom: 5px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 2px solid rgba(255,255,255,0.05);
 }
 .log-entries {
   overflow-y: auto;
@@ -297,7 +392,7 @@ body {
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  font-family: inherit; /* Volta ao padrão */
+  /* font-family: inherit; */
 }
 .log-entries::-webkit-scrollbar { width: 4px; }
 .log-entries::-webkit-scrollbar-track { background: transparent; }
@@ -307,13 +402,14 @@ body {
   padding: 2px 4px;
   border-radius: 3px;
   line-height: 1.4;
+  word-break: break-word; /* Para garantir que o texto quebre corretamente */
 }
 .log-entry.color-red    { color: var(--ludo-red); }
 .log-entry.color-blue   { color: var(--ludo-blue); }
 .log-entry.color-green  { color: var(--ludo-green); }
 .log-entry.color-yellow { color: var(--ludo-yellow); }
 .log-entry.color-neutral { color: var(--text-muted); }
-.log-entry.color-warning { color: var(--accent2); font-weight: 600; } /* Para mensagens de aviso */
+.log-entry.color-warning { color: var(--accent2); font-weight: 600; }
 
 
 /* ===== BOARD AREA - GERAL (para Ludo) ===== */
@@ -321,39 +417,457 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px; /* Espaçamento entre status/dado e tabuleiro */
-  flex: 1; /* Ocupa o espaço restante horizontalmente */
+  gap: 14px;
+  flex: 1; /* Ocupa o espaço restante central */
 }
 
-/* Status Bar */
+/* Barra de Status */
 .status-bar {
   background: var(--surface);
   border-radius: 8px;
-  padding: 12px 28px;
-  font-size: 16px;
+  padding: 10px 28px;
+  font-size: 15px;
   font-weight: 600;
   border: 1px solid rgba(255,255,255,0.06);
-  min-width: 320px;
+  min-width: 300px;
   text-align: center;
   transition: all 0.3s;
+  width: 100%; /* Ocupa a largura total disponível */
+  max-width: var(--ludo-board-size); /* Limita à largura do tabuleiro para consistência */
 }
 .status-bar.your-turn { border-color: var(--accent2); color: var(--accent2); }
-/* Para Ludo, "check" não se aplica, mas poderíamos usar para um "captura!" */
-.status-bar.capture { border-color: var(--ludo-red); color: var(--ludo-red); animation: pulse 1s ease-in-out infinite; }
+.status-bar.check     { border-color: var(--accent);  color: var(--accent); animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
-/* Indicador de pensando */
+/* ===== LUDO BOARD ESPECÍFICO ===== */
+.ludo-board-wrapper {
+  background: var(--surface); /* Fundo do wrapper para o tabuleiro */
+  border-radius: var(--radius);
+  padding: 20px; /* Espaço ao redor do tabuleiro */
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.08);
+
+  /* Centraliza o tabuleiro dentro do wrapper se ele for menor */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ludo-board {
+  display: grid;
+  grid-template-columns: repeat(var(--ludo-board-grid-cols, 15), var(--ludo-cell-size));
+  grid-template-rows: repeat(var(--ludo-board-grid-rows, 15), var(--ludo-cell-size));
+  width: var(--ludo-board-size);
+  height: var(--ludo-board-size);
+  background-color: var(--text-muted); /* Fundo do tabuleiro em si (cinza para áreas neutras) */
+  border: 2px solid rgba(255,255,255,0.15);
+  position: relative;
+  overflow: hidden; /* Garante que os conteúdos não vazem */
+}
+
+.ludo-cell {
+  width: var(--ludo-cell-size);
+  height: var(--ludo-cell-size);
+  background-color: transparent; /* Padrão transparente para que o grid visível seja feito pelas bordas */
+  border: 1px solid rgba(255,255,255,0.05); /* Linhas do grid */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background-color 0.2s; /* Para destaque de movimento */
+}
+
+/* Cores das casas de entrada e safepoints */
+.ludo-cell.zone-red { background-color: rgba(var(--ludo-red), 0.2); }
+.ludo-cell.zone-blue { background-color: rgba(var(--ludo-blue), 0.2); }
+.ludo-cell.zone-green { background-color: rgba(var(--ludo-green), 0.2); }
+.ludo-cell.zone-yellow { background-color: rgba(var(--ludo-yellow), 0.2); }
+
+/* Centro */
+.ludo-cell.zone-center {
+  background-color: var(--surface2); /* Cor de fundo do centro */
+  border: none; /* remove bordas internas */
+  position: relative;
+}
+.ludo-board .zone-center:nth-child(even) { /* Para bordas diagonais no centro se desejar */
+   /* border-color: transparent; */
+}
+
+/* Estiliza as bases de cada cor */
+.ludo-cell.zone-red.ludo-base { background-color: var(--ludo-red-dark); }
+.ludo-cell.zone-blue.ludo-base { background-color: var(--ludo-blue-dark); }
+.ludo-cell.zone-green.ludo-base { background-color: var(--ludo-green-dark); }
+.ludo-cell.zone-yellow.ludo-base { background-color: var(--ludo-yellow-dark); }
+
+/* Casa central da base do Ludo (ex: 2x2 no meio do 5x5 de cada base) */
+.ludo-cell[data-row="1"][data-col="1"], .ludo-cell[data-row="1"][data-col="2"],
+.ludo-cell[data-row="2"][data-col="1"], .ludo-cell[data-row="2"][data-col="2"] { background-color: var(--ludo-red);   }
+.ludo-cell[data-row="1"][data-col="12"], .ludo-cell[data-row="1"][data-col="13"],
+.ludo-cell[data-row="2"][data-col="12"], .ludo-cell[data-row="2"][data-col="13"] { background-color: var(--ludo-blue);  }
+.ludo-cell[data-row="12"][data-col="12"], .ludo-cell[data-row="12"][data-col="13"],
+.ludo-cell[data-row="13"][data-col="12"], .ludo-cell[data-row="13"][data-col="13"] { background-color: var(--ludo-green); }
+.ludo-cell[data-row="12"][data-col="1"], .ludo-cell[data-row="12"][data-col="2"],
+.ludo-cell[data-row="13"][data-col="1"], .ludo-cell[data-row="13"][data-col="2"] { background-color: var(--ludo-yellow); }
+
+
+/* Destaque para casas seguras (estrelas) */
+.ludo-cell.safe::after {
+  content: '⭐'; /* Unicode star */
+  position: absolute;
+  font-size: calc(var(--ludo-cell-size) * 0.6);
+  opacity: 0.6;
+  pointer-events: none;
+}
+/* Estilo para a casa de entrada de cada cor */
+.ludo-cell.start-red   { background-color: var(--ludo-red) !important;   }
+.ludo-cell.start-blue  { background-color: var(--ludo-blue) !important;  }
+.ludo-cell.start-green { background-color: var(--ludo-green) !important; }
+.ludo-cell.start-yellow{ background-color: var(--ludo-yellow) !important; }
+
+/* Peões do Ludo */
+.pawn {
+  position: absolute; /* Para centralizar facilmente na célula */
+  font-size: calc(var(--ludo-cell-size) * 0.75); /* Tamanho do símbolo */
+  line-height: 1; /* Garante que o símbolo não ocupe mais espaço */
+  user-select: none;
+  pointer-events: none; /* Desativa eventos de mouse no peão para focar na célula */
+  color: var(--text); /* Cor do texto dentro do peão */
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); /* Sombra para destacar */
+  z-index: 10;
+}
+
+/* Peões com cores de Ludo (usando filtros e cor do texto para contraste) */
+.pawn.red {    color: var(--ludo-red);    }
+.pawn.blue {   color: var(--ludo-blue);   }
+.pawn.green {  color: var(--ludo-green);  }
+.pawn.yellow { color: var(--ludo-yellow); }
+
+/* Efeito para peça selecionável */
+.pawn.movable {
+  cursor: pointer;
+  pointer-events: all; /* Ativa eventos de mouse para peças que podem ser movidas */
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 8px var(--accent2)); /* Brilho para indicar que é clicável */
+  animation: pulse-pawn 1.5s infinite;
+}
+@keyframes pulse-pawn {
+  0%, 100% { transform: scale(1.1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* Destaque para célular onde a peça está */
+.ludo-cell.pawn-present {
+  background-color: rgba(255,255,255,0.1); /* Destaque leve da célula */
+}
+
+/* Destaque para células de destino válido (Ludo) */
+.ludo-cell.highlight-move {
+  background-color: rgba(245,166,35,0.2) !important; /* Cor de destaque para movimento (laranja/amarelo) */
+  cursor: pointer;
+  border: 2px solid var(--accent2);
+}
+.ludo-cell.highlight-capture {
+  background-color: rgba(233,69,96,0.2) !important; /* Cor de destaque para captura (vermelho) */
+  cursor: pointer;
+  border: 2px solid var(--accent);
+}
+
+/* Área de Dados e Controles */
+.dice-area {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 200px; /* Limita largura do dado */
+}
+
+#dice-display {
+  font-size: 60px;
+  color: var(--accent2); /* Cor de destaque para o dado */
+  width: 80px; height: 80px;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px solid var(--accent2);
+  border-radius: 12px;
+  background-color: var(--surface2);
+  user-select: none;
+}
+
+.game-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  width: 100%;
+}
+.game-actions .btn {
+  flex: 1; /* Garante que os botões compartilhem o espaço */
+}
+
+/* ===== AUTH ===== */
+.auth-container {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.auth-tab {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 9px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-tab.active {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.auth-panel { display: flex; flex-direction: column; gap: 12px; }
+.auth-panel.hidden { display: none; }
+
+.form-group { display: flex; flex-direction: column; }
+
+.form-input {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 13px 16px;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--text-muted); }
+
+.btn-google {
+  background: #fff;
+  color: #333;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-google:hover { background: #f0f0f0; transform: translateY(-1px); }
+
+.auth-note { font-size: 12px; color: var(--text-muted); text-align: center; }
+
+/* ===== HISTÓRICO / PARTIDAS AO VIVO ===== */
+.history-layout {
+  display: flex;
+  flex-direction: column;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  gap: 24px;
+  width: 100%;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.history-header h2 { flex: 1; font-size: 22px; }
+
+.history-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.06);
+}
+
+.stat-win  { color: #4ade80; background: rgba(74,222,128,0.1); }
+.stat-draw { color: var(--accent2); background: rgba(245,166,35,0.1); }
+.stat-loss { color: var(--accent); background: rgba(233,69,96,0.1); }
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-loading,
+.history-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 48px 24px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.history-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.history-card:hover {
+  border-color: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+
+.history-card-left  { display: flex; flex-direction: column; gap: 4px; min-width: 100px; }
+.history-card-center { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.history-card-right  { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+.history-result { font-size: 14px; font-weight: 700; }
+.result-win  { color: #4ade80; }
+.result-draw { color: var(--accent2); }
+.result-loss { color: var(--accent); }
+
+.history-opponent { font-size: 13px; color: var(--text-muted); }
+.history-mode     { font-size: 13px; color: var(--text); }
+.history-moves    { font-size: 12px; color: var(--text-muted); }
+.history-date     { font-size: 12px; color: var(--text-muted); }
+
+/* ===== ESPECTADOR BAR ===== */
+.spectator-bar {
+  text-align: center;
+  background: rgba(74,222,128,0.12);
+  border: 1px solid rgba(74,222,128,0.25);
+  color: #4ade80;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 12px;
+  width: 100%;
+  max-width: var(--ludo-board-size); /* Alinha com a largura do tabuleiro */
+}
+
+/* ===== MODO SELECTOR (Lobby) ===== */
+.mode-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mode-btn {
+  background: rgba(255,255,255,0.04);
+  border: 2px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 16px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  color: var(--text);
+  font-size: 14px; /* Tamanho da fonte para manter padrão */
+}
+
+.mode-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.mode-btn.active {
+  background: rgba(233,69,96,0.12);
+  border-color: var(--accent);
+}
+
+.mode-icon  { font-size: 26px; }
+.mode-label { font-size: 14px; font-weight: 700; }
+.mode-desc  { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+/* ===== PAINÉIS DE MODO (Lobby) ===== */
+.mode-panel { display: flex; flex-direction: column; gap: 14px; }
+.mode-panel.hidden { display: none; }
+.btn-full { width: 100%; justify-content: center; text-align: center; }
+
+/* ===== OPÇÕES DE JOGADORES/IA ===== */
+.option-group { display: flex; flex-direction: column; gap: 10px; }
+
+.option-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+.player-count-btns, .ai-count-btns {
+  display: flex;
+  gap: 8px;
+}
+.player-count-btns .btn, .ai-count-btns .btn {
+  flex: 1; /* Distribui os botões igualmente */
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 14px;
+}
+.player-count-btns .btn:hover, .ai-count-btns .btn:hover {
+  background: #1a4a80;
+}
+.player-count-btns .btn.active, .ai-count-btns .btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Thinking indicator */
 .thinking-dots {
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
 }
 .thinking-dots span {
   display: inline-block;
-  width: 6px; height: 6px;
+  width: 5px; height: 5px;
   background: var(--accent2);
   border-radius: 50%;
-  margin: 0 2px;
   animation: bounce 1.2s ease-in-out infinite;
 }
 .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -363,165 +877,17 @@ body {
   40%            { transform: scale(1);   opacity: 1;   }
 }
 
-/* ===== LUDO BOARD STYLES ===== */
-.ludo-board-wrapper {
-    background: var(--surface);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 15px; /* Reduzido um pouco */
-    position: relative;
-    max-width: var(--ludo-board-base-size); /* Tamanho máximo do wrapper a partir das variáveis */
-    flex-grow: 1; /* Permite que o wrapper cresça se houver espaço */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ludo-board {
-    display: grid;
-    grid-template-columns: repeat(15, var(--cell-size));
-    grid-template-rows: repeat(15, var(--cell-size));
-    width: var(--ludo-board-base-size); /* Usa a variável para garantir consistência */
-    height: var(--ludo-board-base-size); /* Usa a variável */
-    background-color: var(--bg); /* Fundo geral do tabuleiro */
-    border: 3px solid var(--border-color); /* Borda sólida */
-    position: relative;
-    overflow: hidden; /* Para garantir que tudo se encaixe */
-}
-
-.ludo-cell {
-  width: 100%;
-  height: 100%;
-  border: 1px solid rgba(255,255,255,0.03); /* Bordas muito suaves no tema dark */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  transition: background-color 0.1s ease, border-color 0.1s ease;
-}
-
-/* Zonas de cor */
-.zone-red    { background-color: var(--ludo-red-dark); }
-.zone-blue   { background-color: var(--ludo-blue-dark); }
-.zone-green  { background-color: var(--ludo-green-dark); }
-.zone-yellow { background-color: var(--ludo-yellow-dark); }
-.zone-center { background-color: var(--surface2); border: 2px solid var(--accent2); } /* Centro com destaque */
-.zone-neutral{ background-color: var(--surface); } /* Caminho principal, usa cor de superfície do tema */
-
-
-/* Overrides para células específicas no caminho principal: as casas brancas/escuras do xadrez */
-/* Vamos usar as cores do tema para células neutras no caminho principal */
-.ludo-cell.path-neutral {
-  background-color: var(--surface); /* Usa a cor de superfície do tema */
-}
-
-/* Casas seguras (estrelas) */
-.ludo-cell.safe {
-  background-color: var(--accent2) !important; /* Estrela com a cor amarela/laranja do tema */
-  border: 2px solid var(--text); /* Borda branca */
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
-}
-.ludo-cell.safe::after { /* Opcional: Adicionar um ícone de estrela dentro */
-    content: '★'; /* Unicode character for star */
-    font-size: var(--cell-size);
-    color: var(--text);
-    position: absolute;
-    line-height: 1;
-}
-
-/* Peões */
-.pawn {
-  width: calc(var(--cell-size) * 0.7); /* Ligeiramente menor para caber melhor */
-  height: calc(var(--cell-size) * 0.7);
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.5); /* Borda clara */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: white;
-  font-size: 0.9em;
-  position: absolute; /* Para posicionar dentro da célula */
-  z-index: 10;
-  box-shadow: 0 2px 7px rgba(0,0,0,0.4);
-  transition: all 0.2s ease-in-out;
-  cursor: default;
-}
-
-/* Cores dos peões */
-.pawn.red    { background-color: var(--ludo-red); }
-.pawn.blue   { background-color: var(--ludo-blue); }
-.pawn.green  { background-color: var(--ludo-green); }
-.pawn.yellow { background-color: var(--ludo-yellow); }
-
-.pawn.movable {
-  border-color: var(--accent); /* Cor de destaque para peças movíveis */
-  box-shadow: 0 0 15px var(--accent);
-  cursor: pointer;
-  animation: pulse-pawn 1s infinite alternate;
-}
-
-@keyframes pulse-pawn {
-  from { transform: scale(1); }
-  to   { transform: scale(1.1); }
-}
-
-/* Área do dado e ações */
-.dice-area {
-  display: flex;
-  align-items: center;
-  gap: 25px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 15px 30px;
-  box-shadow: var(--shadow);
-}
-
-#btn-roll {
-    font-size: 1.1em;
-    padding: 14px 28px;
-    height: auto;
-}
-
-.dice-display {
-  font-size: 3.5em; /* Reduzido para encaixar melhor */
-  width: 65px; height: 65px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface2);
-  border-radius: 12px;
-  border: 2px solid rgba(255,255,255,0.1);
-  color: var(--text-muted); /* Para o símbolo do dado */
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.game-actions {
-  display: flex;
-  gap: 15px;
-  margin-top: 25px; /* Espaço após a área do dado */
-}
-.game-actions .btn {
-  flex-grow: 1;
-}
-
-/* ===== MODALS ===== */
+/* ===== MODAL DE GAMEOVER ===== */
 .modal {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.72);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(5px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
 }
-.modal:not(.hidden) {
-    opacity: 1;
-    pointer-events: all;
-}
+.modal.hidden { display: none; }
 
-.modal-box { /* Renomeado de modal-card para evitar conflito com history-card */
+.modal-box {
   background: var(--surface);
   border-radius: var(--radius);
   padding: 40px;
@@ -534,285 +900,173 @@ body {
   gap: 18px;
   max-width: 380px;
   width: 92%;
-  transform: translateY(-20px) scale(0.95);
-  opacity: 0;
-  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.3s ease;
 }
-
-.modal:not(.hidden) .modal-box {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-}
-
+.modal-box h3 { font-size: 20px; }
+.modal-box p  { color: var(--text-muted); font-size: 14px; }
 .gameover-icon { font-size: 60px; filter: drop-shadow(0 0 14px var(--accent)); }
 #gameover-title { font-size: 26px; }
 #gameover-msg   { color: var(--text-muted); }
 
-/* ==== Não se aplica no Ludo (Chess only) === */
-.promotion-choices, .chessboard, .board-wrapper,
-.coords-file, .coords-rank, .piece, .move-history-box,
-.captured-pieces, .replay-controls { display: none !important; }
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  flex-wrap: wrap; /* Para lidar com botões em telas pequenas */
+}
+.modal-actions .btn {
+  flex: 1;
+  min-width: 120px; /* Garante tamanho mínimo para botões */
+}
 
 /* ===== MISC ===== */
 .error-msg { color: var(--accent); font-size: 13px; text-align: center; min-height: 18px; }
-
-/* ===== RESPONSIVE — TABLET ===== */
-@media (max-width: 1024px) {
-  .game-layout {
-    flex-direction: column;
-    padding: 15px; /* Padding reduzido */
-    gap: 15px;
-  }
-  .game-sidebar {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    order: 2; /* Move a sidebar para baixo em coluna */
-    max-height: fit-content; /* Permite que o conteúdo defina a altura */
-    padding: 10px;
-  }
-  .players-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    flex-grow: 1;
-    border-bottom: none; /* Remove borda inferior */
-    gap: 10px;
-  }
-  .player-card {
-    flex: 1 1 auto; /* Permite que cresça e encolha, mas mantém tamanho mínimo */
-    max-width: 220px; /* Limite */
-    padding: 10px;
-    font-size: 0.9em;
-  }
-  .player-avatar { width: 36px; height: 36px; font-size: 22px; }
-  .player-name, .player-score { font-size: 0.9em; }
-
-  .log-box {
-    flex-basis: 100%; /* Ocupa a largura total da sidebar */
-    max-height: 150px; /* Altura limitada para não dominar a tela */
-  }
-
-  .board-area {
-    order: 1; /* Move o tabuleiro para cima */
-    gap: 15px;
-  }
-  .status-bar {
-    min-width: 0;
-    width: 100%;
-    max-width: 500px; /* Limita a largura da status bar */
-  }
-  .ludo-board-wrapper {
-      --ludo-board-base-size: min(90vh, 90vw, 550px); /* Ajusta para mobile e tablet */
-      padding: 10px;
-  }
-  .dice-area {
-    width: 100%;
-    max-width: 400px;
-    flex-direction: row; /* Mantém em linha no tablet */
-  }
-  .game-actions {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .game-actions .btn {
-    flex-grow: 1;
-    min-width: 120px;
-  }
+.lobby-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  padding: 24px;
 }
 
-/* ===== RESPONSIVE — MOBILE ===== */
-@media (max-width: 700px) {
-  body {
-    justify-content: flex-start;
-  }
 
-  .lobby-container, .waiting-container, .history-layout, .modal-box {
-    padding: 25px 20px;
-  }
+/* ===== RESPONSIVIDADE ===== */
 
+@media (max-width: 900px) {
   .app-header {
     padding: 10px 15px;
   }
+  .header-logo {
+    font-size: 16px;
+  }
   .header-username {
-    max-width: 90px;
-  }
-  .header-avatar-wrap {
-    width: 32px; height: 32px;
-  }
-  .header-initials, .header-photo {
-    font-size: 12px;
-    width: 32px; height: 32px;
-  }
-
-
-  .logo h1 {
-    font-size: 2.2em;
-  }
-  .mode-selection {
-    flex-direction: column;
-    gap: 10px;
-  }
-  .mode-btn {
-    max-width: 100%;
-    flex-direction: row;
-    justify-content: flex-start;
-    padding: 12px 15px;
-  }
-  .mode-icon {
-    font-size: 1.8em;
-    margin-bottom: 0;
-  }
-  .mode-label {
-    font-size: 1em;
-    flex-grow: 1;
-    text-align: left;
-  }
-  .mode-desc {
-    display: none; /* Esconde descrição pequena para economizar espaço */
-  }
-
-  .player-count-btns, .ai-count-btns {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .player-count-btns .btn, .ai-count-btns .btn {
-    flex-basis: calc(50% - 4px); /* Dois por linha */
-    font-size: 0.9em;
-    padding: 10px;
-  }
-
-  .room-code-box {
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px 15px;
-  }
-  #display-room-code {
-    font-size: 1.8em;
-  }
-  #btn-copy { padding: 10px 15px; }
-
-  .waiting-players-list {
-    font-size: 1em;
-  }
-  .waiting-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-  .waiting-actions .btn {
-    width: 100%;
+    max-width: 100px;
   }
 
   .game-layout {
-    padding: 10px;
-    gap: 10px;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    gap: 15px;
   }
   .game-sidebar {
-    gap: 10px;
+    width: 100%;
+    flex-direction: row; /* Itens da sidebar em linha */
+    flex-wrap: wrap;
+    justify-content: center;
+    order: 2; /* Move a sidebar para baixo no layout de coluna */
+    height: auto;
+    max-height: fit-content;
+    gap: 15px;
     padding: 10px;
   }
   .players-list {
-    flex-direction: row;
-    gap: 8px;
+    flex-direction: row; /* Jogadores em linha uns dos outros */
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    border-bottom: none; /* Remove barra embaixo dos jogadores */
   }
   .player-card {
-    flex: 1 1 calc(50% - 4px); /* Dois jogadores por linha na sidebar */
-    max-width: none;
-    padding: 8px;
-    gap: 8px;
+    flex: 1 1 calc(50% - 10px); /* Dois cards por linha em telas menores */
+    max-width: 200px;
   }
-  .player-avatar { width: 32px; height: 32px; font-size: 20px; border-radius: 6px; }
-  .player-initials { font-size: 12px; }
-  .player-name, .player-score { font-size: 0.85em; }
+  .player-info {
+    max-width: calc(100% - 60px); /* Para prevenir overflow */
+  }
 
   .log-box {
-    max-height: 120px;
-    font-size: 0.8em;
-    padding: 8px;
+    width: 100%;
+    max-height: 150px; /* Limita altura do log em mobile */
+    flex-grow: 0;
+    margin-top: 10px; /* Adiciona um espaço */
   }
-  .log-box h3 { font-size: 0.9em; }
+  .board-area {
+    order: 1;
+    gap: 10px;
+  }
 
-  .status-bar {
-    font-size: 0.9em;
-    padding: 10px;
+  .status-bar, .spectator-bar {
+    font-size: 14px;
+    padding: 8px 15px;
+    margin-bottom: 5px;
+    max-width: 100%; /* Permite que ocupe a largura total */
   }
   .ludo-board-wrapper {
-    --ludo-board-base-size: min(95vw, 400px);
-    padding: 8px;
-  }
-  .dice-area {
-    flex-direction: column; /* Em colunas no mobile */
-    gap: 10px;
+    --ludo-board-size: min(95vw, 450px); /* Reduz o tamanho do tabuleiro no mobile */
+    --ludo-cell-size: calc(var(--ludo-board-size) / 15);
     padding: 10px;
+    border-radius: 8px;
   }
-  #btn-roll {
-    width: 100%;
-    padding: 12px;
-  }
-  .dice-display {
-    font-size: 3em;
-    width: 60px; height: 60px;
+  #dice-display {
+    font-size: 50px;
+    width: 70px; height: 70px;
   }
   .game-actions {
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .game-actions .btn {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 120px;
+    font-size: 0.9em;
   }
 
-  .modal-box {
-    padding: 25px;
-    gap: 15px;
+  .history-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
-  .gameover-icon { font-size: 4em; }
-  #gameover-title { font-size: 1.8em; }
-  #gameover-msg { font-size: 1em; }
+  .history-card-right {
+    width: 100%;
+    align-items: flex-end;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .history-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  .history-header h2 {
+    font-size: 1.5em;
+  }
   .modal-actions {
     flex-direction: column;
     gap: 10px;
   }
-  .modal-actions .btn {
-    min-width: unset;
-    width: 100%;
-  }
 
+  /* Ajustes específicos para o tabuleiro de Ludo em telas muito pequenas */
+  .pawn {
+    font-size: calc(var(--ludo-cell-size) * 0.7); /* Reduz o texto do peão */
+  }
+}
 
-  /* Histórico / Live Games */
-  .history-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 20px;
+@media (max-width: 600px) {
+  .lobby-container, .waiting-container, .auth-container, .modal-box {
+    padding: 30px 20px;
   }
-  .history-header h2 {
-    font-size: 1.8em;
-    text-align: left;
-  }
-  .history-stats {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  .history-stats .stat {
-    font-size: 1em;
-  }
-  .history-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 15px;
-  }
-  .history-card-right {
-    width: 100%;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .history-card-right .btn {
-    padding: 5px 10px; font-size: 0.8em;
+  .logo h1 { font-size: 26px; }
+  .mode-btn { padding: 12px 8px; font-size: 13px; }
+  .mode-icon { font-size: 22px; }
+  .mode-desc { display: none; } /* Esconde descrição completa */
+
+  .player-count-btns, .ai-count-btns { flex-wrap: wrap; gap: 8px; }
+  .player-count-btns .btn, .ai-count-btns .btn { flex-basis: calc(50% - 4px); } /* 2 botoes por linha */
+
+  .room-code-box { flex-direction: column; gap: 8px; }
+  #display-room-code { font-size: 1.6em; letter-spacing: 5px; }
+
+  .waiting-players-list { margin-top: 10px; }
+
+  .player-card { flex-direction: column; text-align: center; gap: 8px; }
+  .player-avatar { margin-right: 0; }
+  .player-info { width: 100%; }
+
+  .dice-area { max-width: 150px; }
+  #dice-display { font-size: 40px; width: 60px; height: 60px; }
+
+  .game-actions .btn {
+    flex: 1 1 100%; /* Um botão por linha se for muito estreito */
   }
 }
