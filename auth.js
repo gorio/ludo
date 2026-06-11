@@ -1,112 +1,87 @@
 /* =====================================================
-   AUTENTICAÇÃO — Firebase Auth + Google
-   Atualizado para sincronizar estatísticas de Ludo.
+   AuthManager - Gerencia a autenticação e dados do usuário
 ===================================================== */
 class AuthManager {
   constructor() {
     this.user = null;
-    this.provider = null;
-    this._listeners = [];
-    this.db = null; // Adicionado para acesso ao Firebase Database
+    this.db = firebase.database();
+    this.fbAuth = firebase.auth();
+
+    this.initFirebaseListeners();
   }
 
-  /**
-   * Inicializa o AuthManager, configura o provedor do Google e o listener de estado de autenticação.
-   * @param {firebase.database.Database} dbInstance Instância do Firebase Database.
-   */
-  init(dbInstance) {
-    this.db = dbInstance; // Armazena a instância do DB
-    this.provider = new firebase.auth.GoogleAuthProvider();
-
-    firebase.auth().onAuthStateChanged(user => {
-      this.user = user;
-      this._listeners.forEach(fn => fn(user));
-
-      if (user && !user.isAnonymous) {
-        this._syncUserProfile(user);
-      }
-    });
+  initFirebaseListeners() {
+    // Isso será manipulado pelo `app.js` agora para evitar duplicação de listeners
   }
 
-  /**
-   * Adiciona um listener para mudanças no estado de autenticação.
-   * @param {function} fn A função de callback a ser chamada quando o estado muda.
-   */
-  onChange(fn) {
-    this._listeners.push(fn);
+  async loginWithEmail(email, password) {
+    try {
+      await this.fbAuth.signInWithEmailAndPassword(email, password);
+    } catch (e) {
+      throw this.authErrorMsg(e.code);
+    }
   }
 
-  /**
-   * Realiza o login utilizando a conta Google.
-   * @returns {firebase.User|null} O objeto do usuário autenticado ou null se o pop-up foi fechado.
-   * @throws {firebase.FirebaseError} Se ocorrer outro erro de autenticação.
-   */
   async loginWithGoogle() {
     try {
-      const result = await firebase.auth().signInWithPopup(this.provider);
-      return result.user;
+      await this.fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
     } catch (e) {
-      // Ignora o erro se o usuário fechar o pop-up de login
-      if (e.code !== 'auth/popup-closed-by-user') throw e;
-      return null;
+      if (e.code !== 'auth/popup-closed-by-user') {
+        throw this.authErrorMsg(e.code);
+      } else {
+        throw 'Login com Google cancelado.';
+      }
     }
   }
 
-  /**
-   * Realiza o login anonimamente.
-   * @returns {firebase.User} O objeto do usuário anônimo.
-   */
-  async loginAnonymously() {
-    const result = await firebase.auth().signInAnonymously();
-    return result.user;
-  }
-
-  /**
-   * Realiza o logout do usuário.
-   */
-  async logout() {
-    await firebase.auth().signOut();
-  }
-
-  /**
-   * Sincroniza o perfil do usuário com o Firebase Realtime Database,
-   * criando-o se não existir e atualizando o lastSeen e estatísticas.
-   * @param {firebase.User} user O objeto do usuário autenticado.
-   */
-  async _syncUserProfile(user) {
-    if (!this.db) {
-      console.error('Firebase Database não inicializado no AuthManager.');
-      return;
+  async registerWithEmail(name, email, password) {
+    try {
+      const cred = await this.fbAuth.createUserWithEmailAndPassword(email, password);
+      await cred.user.updateProfile({ displayName: name });
+      await cred.user.reload();
+      // Inicializa estatísticas de Ludo para o novo usuário
+      await this.db.ref('users/' + cred.user.uid).update({
+        ludoGamesPlayed: 0,
+        ludoWins: 0,
+        ludoLosses: 0,
+        // ludoDraws (se aplicavel, adicione aqui como 0)
+      });
+    } catch (e) {
+      throw this.authErrorMsg(e.code);
     }
-    const ref = this.db.ref('users/' + user.uid);
-    const snap = await ref.once('value');
-    const existing = snap.val() || {};
-
-    await ref.update({
-      displayName: user.displayName || existing.displayName || 'Jogador',
-      photoURL: user.photoURL || existing.photoURL || '',
-      email: user.email || '',
-      lastSeen: Date.now(),
-      // Estatísticas gerais (Xadrez/Dama)
-      gamesPlayed: existing.gamesPlayed || 0,
-      wins: existing.wins || 0,
-      losses: existing.losses || 0,
-      draws: existing.draws || 0,
-      // Novas estatísticas para Ludo
-      ludoGamesPlayed: existing.ludoGamesPlayed || 0,
-      ludoWins: existing.ludoWins || 0,
-      ludoLosses: existing.ludoLosses || 0,
-      ludoDraws: existing.ludoDraws || 0,
-    });
-    console.log('Perfil do usuário sincronizado:', user.uid);
   }
 
-  get isLoggedIn() {
-    return !!this.user && !this.user.isAnonymous;
+  async loginAsGuest() {
+    try {
+      const cred = await this.fbAuth.signInAnonymously();
+      await cred.user.updateProfile({ displayName: 'Visitante' });
+      // Não cria estatísticas de Ludo para visitantes.
+    } catch (e) {
+      throw 'Erro ao entrar como visitante.';
+    }
   }
-  get isAnonymous() {
-    return this.user?.isAnonymous === true;
+
+  logout() {
+    this.fbAuth.signOut();
   }
+
+  authErrorMsg(code) {
+    const msgs = {
+      'auth/user-not-found': 'Usuário não encontrado.',
+      'auth/wrong-password': 'Senha incorreta.',
+      'auth/email-already-in-use': 'E-mail já cadastrado.',
+      'auth/invalid-email': 'E-mail inválido.',
+      'auth/weak-password': 'Senha muito fraca.',
+      'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
+      'auth/operation-not-allowed': 'Autenticação por e-mail/senha não está habilitada.',
+      'auth/account-exists-with-different-credential': 'Conta já existe com outra forma de login (e.g., Google).',
+      'auth/cancelled-popup-request': 'Requisição de popup de login cancelada.',
+      'auth/popup-closed-by-user': 'Popup de login fechado pelo usuário.',
+    };
+    return msgs[code] || 'Ocorreu um erro desconhecido na autenticação: ' + code;
+  }
+
+  // Getters para informações do usuário logado
   get uid() {
     return this.user?.uid || null;
   }
@@ -116,10 +91,16 @@ class AuthManager {
   get photoURL() {
     return this.user?.photoURL || null;
   }
+  get email() {
+    return this.user?.email || null;
+  }
+  get isAnonymous() {
+    return this.user?.isAnonymous || true;
+  }
+
+  // Retorna as iniciais do nome, útil para avatares placeholder
   get initials() {
     const name = this.displayName;
     return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
   }
 }
-
-const auth = new AuthManager();
