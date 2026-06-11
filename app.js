@@ -89,7 +89,6 @@ function escapeHtml(str) {
             .replace(/'/g, '&#039;');
 }
 
-
 /* =====================================================
    BOOTSTRAP DO APLICATIVO
 ===================================================== */
@@ -272,7 +271,6 @@ function updateHeaderUI(user) {
   }
 }
 
-
 /* =====================================================
    NAVEGAÇÃO E TELAS (UI)
 ===================================================== */
@@ -347,7 +345,6 @@ function clearLobbyError() {
   const e = gel('lobby-error');
   if (e) e.textContent = '';
 }
-
 
 /* =====================================================
    LOBBY (UI e Lógica)
@@ -464,7 +461,6 @@ async function createGame() {
         };
         aiPlayersAdded++;
     }
-
 
     engine.reset(); // Assegura que o engine está limpo antes de serializar o estado inicial
     engine.setupGame(Object.values(playerColors).map(p => ({
@@ -660,7 +656,6 @@ async function updateWaitingRoomPlayers(playerColors) {
     const maxPlayersEl = gel('waiting-max-players');
     const btnStartGameHost = gel('btn-start-multiplayer-game-host');
 
-
     if (!listEl || !currentPlayersEl || !maxPlayersEl || !btnStartGameHost) return;
 
     listEl.innerHTML = '';
@@ -692,7 +687,6 @@ async function updateWaitingRoomPlayers(playerColors) {
 
     currentPlayersEl.textContent = currentHumanCount;
     maxPlayersEl.textContent = expectedHumans;
-
 
     // Apenas o host pode ver e clicar no botão "Iniciar Partida"
     if (data && data.hostUid === currentAuthManager.uid) {
@@ -732,7 +726,6 @@ async function startGameAsHost() {
   // Define o status da sala como "playing"
   await roomRef.update({ status: 'playing' });
 }
-
 
 /* =====================================================
    LÓGICA DE PARTIDA MULTIPLAYER (APÓS INICIADA)
@@ -864,7 +857,7 @@ async function startMultiplayerGame(roomData) {
             })),
             myColor: myColor,
             result: result,
-            endedAt: Date.Now(),
+            endedAt: Date.now(),
         });
         historyManager.removeLudoLiveGame(roomCode); // Remove da lista de jogos ao vivo
 
@@ -1020,7 +1013,7 @@ async function doMovePawn(pawnIdx) {
             players: engine.players.map(p => ({ id: p.id, name: p.name, color: p.color, isAI: p.isAI, photoURL: p.photoURL })),
             myColor: myColor,
             result: result,
-            endedAt: Date.Now(),
+            endedAt: Date.now(),
         });
         showGameOver('Partida Encerrada!', `${engine.players.find(p => p.id === engine.winner)?.name || 'Alguém'} levou todas as peças para casa!`);
 

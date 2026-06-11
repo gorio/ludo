@@ -78,17 +78,13 @@ class LudoEngine {
 
     if (playablePawns.length === 0) {
       this.logEvent(this.activePlayer.color, `Sem movimentos válidos para ${this.activePlayer.name}.`);
-      if (!this.extraTurn) { // Se rolou 6 mas não tem moves, perde o 6, mas continua o turno? Discussão Ludo Rules.
-        // Pelo padrão, se rolar 6 e não tiver peças na base, pode mover outra peça.
-        // Se rolou 6 e NÃO PODE mover NADA, geralmente não se ganha outro rolagem e passa a vez.
-        // Para simplificar, se não há moves válidos, passa a vez.
-        this.nextTurn();
-      } else {
-        // Se rolou 6 e não pode mover, ainda tem o turno extra para rolar. Mas não tem movimento.
-        // Vamos forçar a passar a vez também para evitar loop.
-        this.logEvent(this.activePlayer.color, `${this.activePlayer.name} não pode mover, mesmo com 6. Passando a vez.`);
-        this.nextTurn();
-      }
+      // Se não há movimentos válidos, a vez passa, a menos que tenha sido um 6 e o jogador tenha direito a uma nova rolagem.
+      // No Ludo tradicional, se você rola 6 e não pode mover, você perde o 6 e a vez passa.
+      // Se você rola 6 e move, você tem um turno extra.
+      // Se você rola 6 e não tem peças na base, mas tem peças no tabuleiro, você deve mover uma peça.
+      // Se você rola 6 e não pode mover NADA, a vez passa.
+      // Para simplificar, se não há moves válidos, a vez passa.
+      this.nextTurn();
     } else {
       this.logEvent(this.activePlayer.color, `${this.activePlayer.name}, escolha uma peça para mover.`);
     }
@@ -107,7 +103,17 @@ class LudoEngine {
 
       if (pawn.pos === -1) { // Peça está na base
         if (this.diceValue === 6) {
-          moves.push(index); // Pode sair da base
+          // Verifica se a casa de saída está bloqueada por uma peça do próprio jogador
+          const startPos = window.LUDO_CONSTANTS.HOME_START_POS[player.color];
+          const isBlocked = player.pawns.some(
+            (otherPawn, otherIndex) =>
+              otherIndex !== index &&
+              otherPawn.pos === startPos &&
+              otherPawn.homeStep === -1
+          );
+          if (!isBlocked) {
+            moves.push(index); // Pode sair da base
+          }
         }
       } else { // Peça está no caminho principal ou home path
         // Calcula a nova posição
@@ -259,32 +265,47 @@ class LudoEngine {
 
     // Calcula a posição no caminho global
     let globalCurrentPos = -1;
-    for(let i = 0; i < pathCoords.length; i++) {
+    // Encontra a posição atual do peão no PATH_COORDS
+    let currentPawnGlobalIndex = -1;
+    for (let i = 0; i < pathCoords.length; i++) {
         if (pathCoords[i][0] === window.LUDO_CONSTANTS.PATH_COORDS[currentPathIndex][0] &&
             pathCoords[i][1] === window.LUDO_CONSTANTS.PATH_COORDS[currentPathIndex][1]) {
-            globalCurrentPos = i;
+            currentPawnGlobalIndex = i;
             break;
         }
     }
-    if (globalCurrentPos === -1) return { valid: false };
+    if (currentPawnGlobalIndex === -1) return { valid: false };
 
-    let globalNewPos = globalCurrentPos + dice;
+    let globalNewPos = currentPawnGlobalIndex + dice;
 
     // Se o movimento leva para o corredor final
-    if (globalNewPos > finalEntryPathIndex && globalCurrentPos <= finalEntryPathIndex) {
-      const homePathEntrySteps = globalNewPos - finalEntryPathIndex -1; // Quantidade de passos dentro do home path
-      if (homePathEntrySteps < window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-        return { valid: true, targetPos: homePathEntrySteps, isHomePath: true };
-      } else {
-        return { valid: false }; // Excede o home path
-      }
+    // A peça entra no corredor final quando ela "passa" pela FINAL_ENTRY_BOARD_POS do seu jogador.
+    // Para calcular isso corretamente, precisamos saber a posição "absoluta" no caminho global
+    // e a posição de entrada no corredor final para o jogador.
+
+    // Primeiro, vamos normalizar a posição de início do jogador para o índice 0 do seu "caminho"
+    // Isso é crucial para calcular a distância percorrida e a entrada no home path.
+    const pathLength = window.LUDO_CONSTANTS.BOARD_STEPS; // 52 casas no caminho principal
+
+    let relativeCurrentPos = (currentPawnGlobalIndex - playerStartPos + pathLength) % pathLength;
+    let relativeFinalEntryPos = (finalEntryPathIndex - playerStartPos + pathLength) % pathLength;
+
+    let relativeNewPos = relativeCurrentPos + dice;
+
+    if (relativeCurrentPos <= relativeFinalEntryPos && relativeNewPos > relativeFinalEntryPos) {
+        // A peça está entrando ou já passou do ponto de entrada para o corredor final
+        const stepsIntoHomePath = relativeNewPos - relativeFinalEntryPos -1; // -1 porque a casa de entrada não conta como home path step
+        if (stepsIntoHomePath >= 0 && stepsIntoHomePath < window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
+            return { valid: true, targetPos: stepsIntoHomePath, isHomePath: true };
+        } else {
+            return { valid: false }; // Excede o home path
+        }
     } else {
       // Movimento continua no caminho principal (loop around)
-      globalNewPos = globalNewPos % window.LUDO_CONSTANTS.BOARD_STEPS;
-      return { valid: true, targetPos: globalNewPos, isHomePath: false };
+      let targetGlobalPathIndex = (currentPawnGlobalIndex + dice) % pathLength;
+      return { valid: true, targetPos: targetGlobalPathIndex, isHomePath: false };
     }
   }
-
 
   /**
    * Verifica se uma posição no tabuleiro está ocupada por outra peça do próprio jogador.
