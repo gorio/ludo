@@ -9,17 +9,20 @@
   /* TEMA CHESS/DARK (BASE PARA TODO O SITE) */
   --bg:        #1a1a2e; /* Fundo principal escuro */
   --surface:   #16213e; /* Superfícies de cards e modais */
-  --surface2:  #0f3460; /* Superfícies secundárias, mais escuras */
+  --surface2:  #0f3460; /* Superfície secundária, mais escura */
   --accent:    #e94560; /* Cor principal de ação/destaque (vermelho/rosa avermelhado) */
   --accent2:   #f5a623; /* Cor secundária de destaque (laranja/amarelo vibrante) */
   --text:      #eaeaea; /* Cor do texto principal (branco acinzentado) */
   --text-muted:#8892a4; /* Cor do texto secundário/neutro */
-  --light-sq:  #f0d9b5; /* Cor das casas claras do tabuleiro de xadrez (não usado no Ludo) */
-  --dark-sq:   #b58863; /* Cor das casas escuras do tabuleiro de xadrez (não usado no Ludo) */
-  --highlight: rgba(255,255,0,0.4); /* Destaque geral, ex: último lance (ainda pode ser útil) */
-  --move-hint: rgba(0,0,0,0.22); /* Ponto de movimento (ainda pode ser útil) */
-  --selected:  rgba(20,85,30,0.55); /* Seleção de item/casa */
-  --check:     rgba(220,20,60,0.55); /* Indicação de xeque */
+
+  /* Cores específicas de Xadrez (mantidas, mas não diretamente usadas no Ludo) */
+  --light-sq: #f0d9b5; 
+  --dark-sq:  #b58863;
+  --highlight: rgba(255,255,0,0.4); 
+  --move-hint: rgba(0,0,0,0.22); 
+  --selected:  rgba(20,85,30,0.55); 
+  --check:     rgba(220,20,60,0.55); 
+
   --radius:    12px; /* Raio de borda padrão */
   --shadow:    0 8px 32px rgba(0,0,0,0.45); /* Sombra padrão */
 
@@ -28,7 +31,7 @@
 
   /* CORES LUDO (adaptadas ao tema Dark) */
   --ludo-red:     #e74c3c; /* Vermelho vibrante */
-  --ludo-red-dark:#c0392b; /* Vermelho escuro */
+  --ludo-red-dark:#c0392b; /* Vermelho escuro para fundo de iniciais */
   --ludo-blue:    #3498db; /* Azul vibrante */
   --ludo-blue-dark:#2980b9; /* Azul escuro */
   --ludo-green:   #2ecc71; /* Verde vibrante */
@@ -103,6 +106,7 @@ button, input[type="submit"] {
   width: 36px;
   height: 36px;
   flex-shrink: 0;
+  cursor: pointer; /* Para indicar que é clicável (logout/profile) */
 }
 
 .header-photo {
@@ -139,16 +143,18 @@ button, input[type="submit"] {
 }
 
 
-/* ===== SCREENS ===== */
+/* ===== SCREENS (GARANTIR QUE APENAS UM ESTEJA ATIVO) ===== */
 .screen {
-  display: none;
+  display: none; /* Por padrão, todas as telas ficam escondidas */
   width: 100%;
   flex-grow: 1; /* Ocupa o espaço restante após o header */
   align-items: center;
   justify-content: center;
   padding: 24px; /* Adiciona padding geral para não encostar nas bordas */
 }
-.screen.active { display: flex; }
+.screen.active { 
+    display: flex; /* Apenas a tela ativa é exibida */
+}
 
 /* ===== LOBBY ===== */
 .lobby-container {
@@ -274,30 +280,6 @@ button, input[type="submit"] {
 }
 .waiting-container h2 { font-size: 22px; }
 .waiting-container p  { color: var(--text-muted); font-size: 14px; }
-.waiting-players {
-  width: 100%;
-  background: var(--surface2);
-  border-radius: 8px;
-  padding: 10px 15px;
-  text-align: left;
-  font-size: 14px;
-  color: var(--text);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-.waiting-player-slot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
-}
-.waiting-player-slot.filled {
-  color: var(--text);
-  font-weight: 600;
-}
-
 
 .room-code-box {
   display: flex; align-items: center; gap: 14px;
@@ -324,198 +306,246 @@ button, input[type="submit"] {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== GAME LAYOUT (geral para o jogo em si) ===== */
-.game-layout {
+/* ===== LUDO GAME LAYOUT ===== */
+.ludo-game-layout {
   display: flex;
-  gap: 24px;
-  padding: 24px;
-  flex-grow: 1; /* Ocupa o restante da altura após o header */
+  flex-direction: column; /* Padrão, muda para row em desktop */
+  align-items: center;
+  gap: 20px;
+  padding: 20px; /* Padding geral */
   width: 100%;
-  max-width: 1300px; /* Aumenta a largura máxima para acomodar Ludo */
-  margin: 0 auto; /* Centraliza */
+  flex-grow: 1; /* Ocupar o espaço disponível */
+  max-width: 1200px; /* Largura máxima para centralizar */
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* ===== SIDEBAR ===== */
-.game-sidebar {
+/* Área principal do tabuleiro */
+.ludo-board-area {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  width: 260px; /* Um pouco mais larga que a anterior */
-  flex-shrink: 0;
-  height: auto; /* Altura flexível para caber todo o conteúdo */
-  justify-content: flex-start; /* Alinha ao topo */
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 16px;
-  box-shadow: var(--shadow);
+  gap: 15px;
+  align-items: center;
+  flex-grow: 1; /* Ocupa o restante do espaço lateral */
 }
 
+/* Sidebar com jogadores e log */
+.ludo-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 250px; /* Largura fixa para desktop */
+    min-width: 250px;
+    flex-shrink: 0;
+}
+
+/* Ordem dos elementos no layout */
+.ludo-sidebar.left { order: 0; }
+.ludo-board-area   { order: 1; }
+.ludo-sidebar.right{ order: 2; }
+
+
+/* Status Bar */
+.status-bar {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.06);
+  min-width: 280px;
+  text-align: center;
+  transition: all 0.3s;
+}
+.status-bar.your-turn { border-color: var(--accent2); color: var(--accent2); }
+
+/* Área do Dado */
+.dice-area {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px 20px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.06);
+  align-items: center;
+  flex-shrink: 0; /* Impede que ele encolha */
+}
+
+#dice-display {
+  font-size: 4em;
+  line-height: 1;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+#btn-roll {
+  background: var(--accent);
+  color: white;
+  padding: 12px 24px;
+  font-size: 1.1em;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(233,69,96,0.3);
+  transition: all 0.2s;
+}
+#btn-roll:hover:not(:disabled) {
+  background: #c73652;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(233,69,96,0.4);
+}
+
+/* Ações do Jogo (Botões como Desistir, Novo Jogo) */
+.game-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap; /* Permite quebrar linha em telas pequenas */
+}
+
+/* Lista de Jogadores na Sidebar */
 .players-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  width: 100%;
 }
 
 .player-card {
-  background: var(--surface2); /* Cor de fundo mais clara para o card */
+  background: var(--surface);
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   display: flex;
-  align-items: center; /* Alinha itens verticalmente */
+  align-items: center;
   gap: 12px;
   border: 2px solid rgba(255,255,255,0.05);
-  transition: border-color 0.3s, box-shadow 0.3s, background-color 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 .player-card.active-turn {
-  border-color: var(--accent2); /* Cor de destaque do tema */
-  box-shadow: 0 0 18px rgba(245,166,35,0.18);
-  background-color: var(--surface); /* Fundo mais escuro para o jogador ativo */
+  animation: pulse-border 1.5s infinite alternate;
+  box-shadow: 0 0 15px rgba(245,166,35,0.2);
+}
+@keyframes pulse-border {
+    from { border-color: rgba(245,166,35,0.3); }
+    to { border-color: var(--accent2); }
 }
 
 .player-avatar {
-  font-size: 26px; /* Ajustado para Ludo (símbolos ou iniciais) */
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.07); /* Fundo sutil para o avatar */
-  border-radius: 8px; /* Cantos quadrados */
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface2); /* Fundo padrão para iniciais */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  overflow: hidden; /* Garante que a foto de perfil se encaixe */
 }
-.player-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.player-avatar img.player-photo { /* Fotos de perfil */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
 }
-.player-initials {
-    width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--text);
+.player-avatar span.player-initials { /* Iniciais */
+    font-size: 1.2em;
+    font-weight: bold;
+    color: white;
 }
-.player-info { flex: 1; min-width: 0; /* Permite que o texto quebre */ }
+
+.player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Para permitir que o texto encurte com ellipsis */
+}
 .player-name {
-  font-size: 14px;
+  font-size: 1em;
   font-weight: 600;
   color: var(--text);
-  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.player-score { font-size: 12px; color: var(--text-muted); }
-
-/* LUDO ESPECÍFICO: Indicador de peças na base ou prontas para sair */
+.player-score {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
 .ludo-score-indicator {
   display: flex;
-  gap: 3px;
+  gap: 4px;
   margin-top: 5px;
-  min-height: 12px; /* Garante espaço mesmo sem dots */
 }
 .pawn-on-base-dot {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.3);
   background-color: rgba(255,255,255,0.1); /* Cor padrão para peça na base */
-  border: 1px solid rgba(0,0,0,0.2);
+  transition: background-color 0.2s;
 }
 .pawn-on-base-dot.ready {
-  background-color: var(--accent2); /* Brilha quando pronto para sair */
-  box-shadow: 0 0 8px rgba(245,166,35,0.6);
+  background-color: var(--accent2); /* Brilha quando pode sair com 6 */
+  box-shadow: 0 0 8px var(--accent2);
 }
 
-
-/* Log de eventos do jogo */
-.log-box {
+/* Log do Jogo */
+.game-log-box {
   background: var(--surface);
-  border-radius: var(--radius);
-  padding: 16px;
-  flex: 1; /* Ocupa o espaço restante */
-  border: 1px solid rgba(255,255,255,0.05);
-  overflow: hidden;
+  border-radius: 10px;
+  padding: 15px;
+  flex: 1; /* Ocupa o espaço restante na sidebar */
+  border: 1px solid rgba(255,255,255,0.06);
+  min-height: 150px; /* Altura mínima para o log */
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
-.log-box h3 {
-  font-size: 11px;
+.game-log-box h3 {
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   color: var(--text-muted);
+  margin-bottom: 10px;
 }
 .log-entries {
   overflow-y: auto;
-  flex: 1;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
+  gap: 5px;
+  font-size: 0.9em;
+  color: var(--text-muted);
 }
-.log-entries::-webkit-scrollbar { width: 4px; }
-.log-entries::-webkit-scrollbar-track { background: transparent; }
-.log-entries::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
-.log-entry { padding: 4px 6px; border-radius: 4px; }
-.log-entry.color-red    { background: rgba(var(--ludo-red-dark), 0.2); color: var(--ludo-red); }
-.log-entry.color-blue   { background: rgba(var(--ludo-blue-dark), 0.2); color: var(--ludo-blue); }
-.log-entry.color-green  { background: rgba(var(--ludo-green-dark), 0.2); color: var(--ludo-green); }
-.log-entry.color-yellow { background: rgba(var(--ludo-yellow-dark), 0.2); color: var(--ludo-yellow); }
-.log-entry.color-neutral { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+.log-entries::-webkit-scrollbar { width: 6px; }
+.log-entries::-webkit-scrollbar-track { background: var(--surface2); border-radius: 3px;}
+.log-entries::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 
-
-/* ===== BOARD AREA LUDO ===== */
-.board-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  flex: 1; /* Ocupa a maior parte do espaço lateral */
+.log-entry {
+  padding: 3px 5px;
+  border-radius: 4px;
+  word-break: break-word; /* Evita estouro de texto */
+  white-space: pre-wrap; /* Preserva quebras de linha e espaços */
 }
+.log-entry.color-red    { color: var(--ludo-red-dark); }
+.log-entry.color-blue   { color: var(--ludo-blue-dark); }
+.log-entry.color-green  { color: var(--ludo-green-dark); }
+.log-entry.color-yellow { color: var(--ludo-yellow-dark); }
+.log-entry.color-neutral { color: var(--text-muted); }
 
-/* Barra de status, pode ter a do Xadrez também */
-.status-bar {
-  background: var(--surface);
-  border-radius: 8px;
-  padding: 10px 28px;
-  font-size: 15px;
-  font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.06);
-  min-width: 300px; /* Garante que tenha um tamanho mínimo */
-  text-align: center;
-  transition: all 0.3s;
-  width: 100%; /* Estende para largura total disponível */
-}
-.status-bar.your-turn { border-color: var(--accent2); color: var(--accent2); }
 
-/* Thinking indicator (IA) */
-.thinking-dots { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; }
-.thinking-dots span {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background-color: var(--accent2); opacity: 0.5;
-  animation: pulsate 1.4s ease-in-out infinite;
-}
-.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes pulsate {
-  0%, 100% { opacity: 0.5; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.1); }
-}
-
-/* ===== TABULEIRO LUDO CONTAINER ===== */
+/* ===== LUDO BOARD (GRID) ===== */
 .ludo-board-wrapper {
   position: relative;
   width: var(--ludo-board-size);
   height: var(--ludo-board-size);
-  border: 2px solid rgba(255,255,255,0.12);
-  border-radius: 3px;
+  background: var(--surface2); /* Fundo do tabuleiro em si */
+  border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
   display: grid;
-  grid-template-columns: repeat(15, var(--ludo-cell-size));
-  grid-template-rows: repeat(15, var(--ludo-cell-size));
-  background-color: var(--surface); /* Fundo do tabuleiro */
+  grid-template-columns: repeat(var(--LUDO-BOARD-SIZE, 15), 1fr); /* 15 colunas */
+  grid-template-rows: repeat(var(--LUDO-BOARD-SIZE, 15), 1fr);   /* 15 linhas */
+  border: 2px solid rgba(255,255,255,0.1);
   user-select: none;
 }
 
@@ -526,120 +556,287 @@ button, input[type="submit"] {
   align-items: center;
   justify-content: center;
   position: relative;
-  background-color: transparent; /* Padrão, cores serão dadas por classes */
-  border: 1px solid rgba(255,255,255,0.05); /* Pequena linha de grade */
-  transition: background-color 0.1s;
+  background-color: rgba(255,255,255,0.06); /* Cor base das células vazias */
+  border: 1px solid rgba(0,0,0,0.1);
 }
 
-/* Estilos para as ZONAS DO LUDO (bases e corredores finais) */
-.ludo-cell.zone-red    { background-color: rgba(var(--ludo-red), 0.1); }
-.ludo-cell.zone-blue   { background-color: rgba(var(--ludo-blue), 0.1); }
-.ludo-cell.zone-green  { background-color: rgba(var(--ludo-green), 0.1); }
-.ludo-cell.zone-yellow { background-color: rgba(var(--ludo-yellow), 0.1); }
-.ludo-cell.zone-neutral { background-color: rgba(255,255,255,0.03); } /* Casas do caminho principal */
-.ludo-cell.zone-center { background-color: var(--surface2); } /* Centro final */
+/* Estilos para as Zonas (Bases e Corredores Finais) */
+.ludo-cell.zone-red    { background-color: rgba(var(--ludo-red-dark-rgb), 0.2); } /* Fundo mais claro, borda mais escura */
+.ludo-cell.zone-blue   { background-color: rgba(var(--ludo-blue-dark-rgb), 0.2); }
+.ludo-cell.zone-green  { background-color: rgba(var(--ludo-green-dark-rgb), 0.2); }
+.ludo-cell.zone-yellow { background-color: rgba(var(--ludo-yellow-dark-rgb), 0.2); }
 
-
-/* Marcador de Safe Square */
-.ludo-cell.safe {
-  background-image: radial-gradient(circle at center, rgba(255,255,255,0.3) 10%, transparent 11%);
-  background-size: 100% 100%;
+/* Cor de fundo para as zonas de base (mais fortes, mais opacas) */
+.ludo-cell.zone-red[data-row="0"][data-col="0"], /* Canto superior esquerdo */
+.ludo-cell.zone-red[data-row="0"][data-col="1"],
+.ludo-cell.zone-red[data-row="0"][data-col="2"],
+.ludo-cell.zone-red[data-row="0"][data-col="3"],
+.ludo-cell.zone-red[data-row="0"][data-col="4"],
+.ludo-cell.zone-red[data-row="0"][data-col="5"],
+.ludo-cell.zone-red[data-row="1"][data-col="0"],
+.ludo-cell.zone-red[data-row="1"][data-col="1"],
+.ludo-cell.zone-red[data-row="1"][data-col="2"],
+.ludo-cell.zone-red[data-row="1"][data-col="3"],
+.ludo-cell.zone-red[data-row="1"][data-col="4"],
+.ludo-cell.zone-red[data-row="1"][data-col="5"],
+.ludo-cell.zone-red[data-row="2"][data-col="0"],
+.ludo-cell.zone-red[data-row="2"][data-col="1"],
+.ludo-cell.zone-red[data-row="2"][data-col="2"],
+.ludo-cell.zone-red[data-row="2"][data-col="3"],
+.ludo-cell.zone-red[data-row="2"][data-col="4"],
+.ludo-cell.zone-red[data-row="2"][data-col="5"],
+.ludo-cell.zone-red[data-row="3"][data-col="0"],
+.ludo-cell.zone-red[data-row="3"][data-col="1"],
+.ludo-cell.zone-red[data-row="3"][data-col="2"],
+.ludo-cell.zone-red[data-row="3"][data-col="3"],
+.ludo-cell.zone-red[data-row="3"][data-col="4"],
+.ludo-cell.zone-red[data-row="3"][data-col="5"],
+.ludo-cell.zone-red[data-row="4"][data-col="0"],
+.ludo-cell.zone-red[data-row="4"][data-col="1"],
+.ludo-cell.zone-red[data-row="4"][data-col="2"],
+.ludo-cell.zone-red[data-row="4"][data-col="3"],
+.ludo-cell.zone-red[data-row="4"][data-col="4"],
+.ludo-cell.zone-red[data-row="4"][data-col="5"],
+.ludo-cell.zone-red[data-row="5"][data-col="0"],
+.ludo-cell.zone-red[data-row="5"][data-col="1"],
+.ludo-cell.zone-red[data-row="5"][data-col="2"],
+.ludo-cell.zone-red[data-row="5"][data-col="3"],
+.ludo-cell.zone-red[data-row="5"][data-col="4"],
+.ludo-cell.zone-red[data-row="5"][data-col="5"] {
+  background-color: var(--ludo-red-dark);
 }
-.ludo-cell.safe::after {
-  content: '⭐'; /* Estrela */
+
+.ludo-cell.zone-blue[data-row="0"][data-col="9"], /* Canto superior direito */
+.ludo-cell.zone-blue[data-row="0"][data-col="10"],
+.ludo-cell.zone-blue[data-row="0"][data-col="11"],
+.ludo-cell.zone-blue[data-row="0"][data-col="12"],
+.ludo-cell.zone-blue[data-row="0"][data-col="13"],
+.ludo-cell.zone-blue[data-row="0"][data-col="14"],
+.ludo-cell.zone-blue[data-row="1"][data-col="9"],
+.ludo-cell.zone-blue[data-row="1"][data-col="10"],
+.ludo-cell.zone-blue[data-row="1"][data-col="11"],
+.ludo-cell.zone-blue[data-row="1"][data-col="12"],
+.ludo-cell.zone-blue[data-row="1"][data-col="13"],
+.ludo-cell.zone-blue[data-row="1"][data-col="14"],
+.ludo-cell.zone-blue[data-row="2"][data-col="9"],
+.ludo-cell.zone-blue[data-row="2"][data-col="10"],
+.ludo-cell.zone-blue[data-row="2"][data-col="11"],
+.ludo-cell.zone-blue[data-row="2"][data-col="12"],
+.ludo-cell.zone-blue[data-row="2"][data-col="13"],
+.ludo-cell.zone-blue[data-row="2"][data-col="14"],
+.ludo-cell.zone-blue[data-row="3"][data-col="9"],
+.ludo-cell.zone-blue[data-row="3"][data-col="10"],
+.ludo-cell.zone-blue[data-row="3"][data-col="11"],
+.ludo-cell.zone-blue[data-row="3"][data-col="12"],
+.ludo-cell.zone-blue[data-row="3"][data-col="13"],
+.ludo-cell.zone-blue[data-row="3"][data-col="14"],
+.ludo-cell.zone-blue[data-row="4"][data-col="9"],
+.ludo-cell.zone-blue[data-row="4"][data-col="10"],
+.ludo-cell.zone-blue[data-row="4"][data-col="11"],
+.ludo-cell.zone-blue[data-row="4"][data-col="12"],
+.ludo-cell.zone-blue[data-row="4"][data-col="13"],
+.ludo-cell.zone-blue[data-row="4"][data-col="14"],
+.ludo-cell.zone-blue[data-row="5"][data-col="9"],
+.ludo-cell.zone-blue[data-row="5"][data-col="10"],
+.ludo-cell.zone-blue[data-row="5"][data-col="11"],
+.ludo-cell.zone-blue[data-row="5"][data-col="12"],
+.ludo-cell.zone-blue[data-row="5"][data-col="13"],
+.ludo-cell.zone-blue[data-row="5"][data-col="14"] {
+  background-color: var(--ludo-blue-dark);
+}
+
+.ludo-cell.zone-green[data-row="9"][data-col="9"], /* Canto inferior direito */
+.ludo-cell.zone-green[data-row="9"][data-col="10"],
+.ludo-cell.zone-green[data-row="9"][data-col="11"],
+.ludo-cell.zone-green[data-row="9"][data-col="12"],
+.ludo-cell.zone-green[data-row="9"][data-col="13"],
+.ludo-cell.zone-green[data-row="9"][data-col="14"],
+.ludo-cell.zone-green[data-row="10"][data-col="9"],
+.ludo-cell.zone-green[data-row="10"][data-col="10"],
+.ludo-cell.zone-green[data-row="10"][data-col="11"],
+.ludo-cell.zone-green[data-row="10"][data-col="12"],
+.ludo-cell.zone-green[data-row="10"][data-col="13"],
+.ludo-cell.zone-green[data-row="10"][data-col="14"],
+.ludo-cell.zone-green[data-row="11"][data-col="9"],
+.ludo-cell.zone-green[data-row="11"][data-col="10"],
+.ludo-cell.zone-green[data-row="11"][data-col="11"],
+.ludo-cell.zone-green[data-row="11"][data-col="12"],
+.ludo-cell.zone-green[data-row="11"][data-col="13"],
+.ludo-cell.zone-green[data-row="11"][data-col="14"],
+.ludo-cell.zone-green[data-row="12"][data-col="9"],
+.ludo-cell.zone-green[data-row="12"][data-col="10"],
+.ludo-cell.zone-green[data-row="12"][data-col="11"],
+.ludo-cell.zone-green[data-row="12"][data-col="12"],
+.ludo-cell.zone-green[data-row="12"][data-col="13"],
+.ludo-cell.zone-green[data-row="12"][data-col="14"],
+.ludo-cell.zone-green[data-row="13"][data-col="9"],
+.ludo-cell.zone-green[data-row="13"][data-col="10"],
+.ludo-cell.zone-green[data-row="13"][data-col="11"],
+.ludo-cell.zone-green[data-row="13"][data-col="12"],
+.ludo-cell.zone-green[data-row="13"][data-col="13"],
+.ludo-cell.zone-green[data-row="13"][data-col="14"],
+.ludo-cell.zone-green[data-row="14"][data-col="9"],
+.ludo-cell.zone-green[data-row="14"][data-col="10"],
+.ludo-cell.zone-green[data-row="14"][data-col="11"],
+.ludo-cell.zone-green[data-row="14"][data-col="12"],
+.ludo-cell.zone-green[data-row="14"][data-col="13"],
+.ludo-cell.zone-green[data-row="14"][data-col="14"] {
+  background-color: var(--ludo-green-dark);
+}
+
+.ludo-cell.zone-yellow[data-row="9"][data-col="0"], /* Canto inferior esquerdo */
+.ludo-cell.zone-yellow[data-row="9"][data-col="1"],
+.ludo-cell.zone-yellow[data-row="9"][data-col="2"],
+.ludo-cell.zone-yellow[data-row="9"][data-col="3"],
+.ludo-cell.zone-yellow[data-row="9"][data-col="4"],
+.ludo-cell.zone-yellow[data-row="9"][data-col="5"],
+.ludo-cell.zone-yellow[data-row="10"][data-col="0"],
+.ludo-cell.zone-yellow[data-row="10"][data-col="1"],
+.ludo-cell.zone-yellow[data-row="10"][data-col="2"],
+.ludo-cell.zone-yellow[data-row="10"][data-col="3"],
+.ludo-cell.zone-yellow[data-row="10"][data-col="4"],
+.ludo-cell.zone-yellow[data-row="10"][data-col="5"],
+.ludo-cell.zone-yellow[data-row="11"][data-col="0"],
+.ludo-cell.zone-yellow[data-row="11"][data-col="1"],
+.ludo-cell.zone-yellow[data-row="11"][data-col="2"],
+.ludo-cell.zone-yellow[data-row="11"][data-col="3"],
+.ludo-cell.zone-yellow[data-row="11"][data-col="4"],
+.ludo-cell.zone-yellow[data-row="11"][data-col="5"],
+.ludo-cell.zone-yellow[data-row="12"][data-col="0"],
+.ludo-cell.zone-yellow[data-row="12"][data-col="1"],
+.ludo-cell.zone-yellow[data-row="12"][data-col="2"],
+.ludo-cell.zone-yellow[data-row="12"][data-col="3"],
+.ludo-cell.zone-yellow[data-row="12"][data-col="4"],
+.ludo-cell.zone-yellow[data-row="12"][data-col="5"],
+.ludo-cell.zone-yellow[data-row="13"][data-col="0"],
+.ludo-cell.zone-yellow[data-row="13"][data-col="1"],
+.ludo-cell.zone-yellow[data-row="13"][data-col="2"],
+.ludo-cell.zone-yellow[data-row="13"][data-col="3"],
+.ludo-cell.zone-yellow[data-row="13"][data-col="4"],
+.ludo-cell.zone-yellow[data-row="13"][data-col="5"],
+.ludo-cell.zone-yellow[data-row="14"][data-col="0"],
+.ludo-cell.zone-yellow[data-row="14"][data-col="1"],
+.ludo-cell.zone-yellow[data-row="14"][data-col="2"],
+.ludo-cell.zone-yellow[data-row="14"][data-col="3"],
+.ludo-cell.zone-yellow[data-row="14"][data-col="4"],
+.ludo-cell.zone-yellow[data-row="14"][data-col="5"] {
+  background-color: var(--ludo-yellow-dark);
+}
+
+
+/* Centro do Tabuleiro */
+.ludo-cell.zone-center {
+  background-color: var(--surface2); /* Cor neutra, mas visível */
+  border: none; /* Remover borda interna do centro */
+  position: relative;
+  overflow: hidden; /* Garante que o triângulo não escape */
+}
+
+/* Triângulos no centro (usando pseudo-elementos) */
+.ludo-cell.zone-center[data-row="6"][data-col="7"]::before {
+  content: '';
   position: absolute;
-  font-size: calc(var(--ludo-cell-size) * 0.6);
-  opacity: 0.6;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  border-bottom: calc(var(--ludo-cell-size) * 1.5) solid transparent; /* Metade do centro */
+  border-right: calc(var(--ludo-cell-size) * 1.5) solid var(--ludo-blue-dark);
+}
+.ludo-cell.zone-center[data-row="7"][data-col="6"]::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  border-top: calc(var(--ludo-cell-size) * 1.5) solid transparent;
+  border-right: calc(var(--ludo-cell-size) * 1.5) solid var(--ludo-yellow-dark);
+}
+.ludo-cell.zone-center[data-row="7"][data-col="8"]::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 0; height: 0;
+  border-top: calc(var(--ludo-cell-size) * 1.5) solid transparent;
+  border-left: calc(var(--ludo-cell-size) * 1.5) solid var(--ludo-green-dark);
+}
+.ludo-cell.zone-center[data-row="8"][data-col="7"]::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 0; height: 0;
+  border-top: calc(var(--ludo-cell-size) * 1.5) solid transparent; /* Metade do centro */
+  border-right: calc(var(--ludo-cell-size) * 1.5) solid var(--ludo-red-dark);
+}
+/* A célula do meio absoluto para o "furo" no centro */
+.ludo-board-wrapper .ludo-cell[data-row="7"][data-col="7"] {
+  background-color: var(--surface); /* Furo no centro */
+  border: none;
+  z-index: 10; /* Para aparecer por cima dos triângulos se houver sobreposição */
 }
 
-/* Estilos para as bases de saída */
-.ludo-cell.zone-red.base-square { background-color: rgba(var(--ludo-red), 0.2); }
-.ludo-cell.zone-blue.base-square { background-color: rgba(var(--ludo-blue), 0.2); }
-.ludo-cell.zone-green.base-square { background-color: rgba(var(--ludo-green), 0.2); }
-.ludo-cell.zone-yellow.base-square { background-color: rgba(var(--ludo-yellow), 0.2); }
-
-/* Marcadores de START_POINTS */
-[data-is-start="red"]    { background-image: radial-gradient(circle at center, var(--ludo-red) 30%, transparent 31%) !important; }
-[data-is-start="blue"]   { background-image: radial-gradient(circle at center, var(--ludo-blue) 30%, transparent 31%) !important; }
-[data-is-start="green"]  { background-image: radial-gradient(circle at center, var(--ludo-green) 30%, transparent 31%) !important; }
-[data-is-start="yellow"] { background-image: radial-gradient(circle at center, var(--ludo-yellow) 30%, transparent 31%) !important; }
-
-/* As casas centrais do Home Path (setas, por exemplo) */
-/* Isso é um pouco mais complexo via CSS e envolveria background-images ou ::after */
-/* Por agora, as cores de zona já dão uma boa indicação. */
-
-
-/* ===== PEÕES (PAWNS) DO LUDO ===== */
-.pawn {
-  position: relative; /* Para centralizar o símbolo */
-  width: calc(var(--ludo-cell-size) * 0.7);
-  height: calc(var(--ludo-cell-size) * 0.7);
+/* Casas de partida (grandes círculos nos cantos das bases) */
+.ludo-cell[data-row="3"][data-col="3"]::after, /* Vermelho */
+.ludo-cell[data-row="3"][data-col="11"]::after, /* Azul */
+.ludo-cell[data-row="11"][data-col="11"]::after, /* Verde */
+.ludo-cell[data-row="11"][data-col="3"]::after { /* Amarelo */
+  content: '';
+  position: absolute;
+  width: 65%; /* Tamanho do círculo */
+  height: 65%;
   border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.3);
+  background-color: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  z-index: 1; /* Abaixo dos peões */
+}
+/* Cor dos círculos de partida usando as cores ludo */
+.ludo-cell.zone-red[data-row="3"][data-col="3"]::after    { background-color: var(--ludo-red-dark); }
+.ludo-cell.zone-blue[data-row="3"][data-col="11"]::after   { background-color: var(--ludo-blue-dark); }
+.ludo-cell.zone-green[data-row="11"][data-col="11"]::after { background-color: var(--ludo-green-dark); }
+.ludo-cell.zone-yellow[data-row="11"][data-col="3"]::after { background-color: var(--ludo-yellow-dark); }
+
+
+/* Estilos para casas seguras (estrelas) */
+.ludo-cell.safe::after {
+  content: '⭐'; /* Ou outro ícone de segurança */
+  position: absolute;
+  font-size: 0.7em;
+  opacity: 0.6;
+  z-index: 1; /* Abaixo dos peões */
+}
+
+/* Peões */
+.pawn {
+  width: calc(var(--ludo-cell-size) * 0.75); /* 75% do tamanho da célula */
+  height: calc(var(--ludo-cell-size) * 0.75);
+  border-radius: 50%;
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--ludo-cell-size) * 0.4); /* Tamanho do emoji/símbolo */
+  font-size: 1.1em; /* Tamanho do símbolo */
+  font-weight: bold;
+  color: white; /* Cor do símbolo */
+  border: 2px solid rgba(0,0,0,0.3);
   box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-  z-index: 5; /* Garante que peões fiquem acima das células */
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  cursor: default; /* Padrão, muda para pointer quando movable */
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  cursor: default;
+  z-index: 2; /* Acima de fundos e estrelas */
 }
 
-.pawn.red    { background-color: var(--ludo-red);    }
-.pawn.blue   { background-color: var(--ludo-blue);   }
-.pawn.green  { background-color: var(--ludo-green);  }
-.pawn.yellow { background-color: var(--ludo-yellow); }
+.pawn.red    { background-color: var(--ludo-red);    border-color: var(--ludo-red-dark);   }
+.pawn.blue   { background-color: var(--ludo-blue);   border-color: var(--ludo-blue-dark);  }
+.pawn.green  { background-color: var(--ludo-green);  border-color: var(--ludo-green-dark); }
+.pawn.yellow { background-color: var(--ludo-yellow); border-color: var(--ludo-yellow-dark);}
 
-/* Para peões que podem ser movidos */
+/* Estilo para peões que podem ser movidos */
 .pawn.movable {
   cursor: pointer;
-  box-shadow: 0 0 12px var(--accent2); /* Brilho para indicar que é clicável */
-  transform: scale(1.1); /* Um pequeno "zoom" */
-  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+  box-shadow: 0 0 15px var(--accent2); /* Brilho de seleção */
+  transform: scale(1.1);
+  z-index: 3; /* Sempre acima de outros peões */
 }
-.pawn.movable:hover { transform: scale(1.15); box-shadow: 0 0 16px var(--accent2); }
-
-
-/* Area do dado */
-.dice-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(255,255,255,0.06);
-  width: 100%;
-}
-#dice-display {
-  font-size: 60px;
-  text-align: center;
-  width: 100px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface2);
-  border-radius: 12px;
-  border: 2px solid rgba(255,255,255,0.1);
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
-  color: var(--text);
-  margin-bottom: 10px;
+.pawn.movable:hover {
+  filter: brightness(1.2); /* Suave brilho ao passar o mouse */
 }
 
-
-
-/* ===== GAME CONTROLS ===== */
-.game-actions { display: flex; gap: 14px; margin-top: auto; } /* margin-top: auto para empurrar para baixo */
 
 /* ===== MODALS ===== */
 .modal {
@@ -662,20 +859,16 @@ button, input[type="submit"] {
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  max-width: 420px;
+  max-width: 380px;
   width: 92%;
 }
 .modal-box h3 { font-size: 20px; }
 .modal-box p  { color: var(--text-muted); font-size: 14px; }
+
 .modal-actions {
   display: flex;
   gap: 10px;
-  margin-top: 20px;
-  width: 100%;
-  justify-content: center;
-}
-.modal-actions .btn {
-  flex-grow: 1; /* Permite que os botões se expandam */
+  margin-top: 15px;
 }
 
 .gameover-icon { font-size: 60px; filter: drop-shadow(0 0 14px var(--accent)); }
@@ -685,153 +878,146 @@ button, input[type="submit"] {
 /* ===== MISC ===== */
 .error-msg { color: var(--accent); font-size: 13px; text-align: center; min-height: 18px; }
 
+
+/* ===== RESPONSIVE — DESKTOP GRANDE ===== */
+@media (min-width: 1025px) {
+  .ludo-game-layout {
+      flex-direction: row; /* Layout horizontal em telas grandes */
+      align-items: flex-start; /* Alinhar itens ao topo */
+  }
+
+  .ludo-sidebar.left {
+      order: 0; /* Sidebar esquerda primeiro */
+  }
+  .ludo-board-area {
+      order: 1; /* Tabuleiro no meio */
+  }
+  .ludo-sidebar.right {
+      order: 2; /* Sidebar direita por último */
+  }
+}
 /* ===== RESPONSIVE — TABLET ===== */
 @media (max-width: 1024px) {
-  .game-layout {
-    flex-direction: column; /* Colunas viram linhas */
-    align-items: center;
-    padding: 15px;
-    gap: 15px;
+  .ludo-game-layout {
+      flex-direction: column; /* Colunas para mobile e tablet */
+      gap: 15px;
+      padding: 15px;
   }
-  .game-sidebar {
-    width: 100%;
-    max-width: var(--ludo-board-size); /* Limita a largura da sidebar à do tabuleiro */
-    flex-direction: row; /* Itens da sidebar ficam lado a lado */
-    flex-wrap: wrap; /* Permite quebrar em várias linhas */
-    height: auto;
-    max-height: fit-content; /* Para que caiba o conteúdo */
-    gap: 15px; /* Ajusta o gap entre os elementos da sidebar */
+  .ludo-sidebar {
+      width: 100%; /* Ocupa a largura total */
+      flex-direction: row; /* Sidebar horizontal */
   }
-  .players-list {
-      flex-direction: row; /* Jogadores em linha */
-      flex-wrap: wrap;
-      flex-grow: 1;
+  .ludo-sidebar.left, .ludo-sidebar.right {
+      display: flex; /* Garante que ambas estejam visíveis, se houver */
+      flex-wrap: wrap; /* Permite que os cards quebrem linha */
       justify-content: center;
       gap: 10px;
+  }
+  .players-list {
+      flex-direction: row; /* Cards de jogador em linha */
+      flex-wrap: wrap;
+      justify-content: center;
       width: 100%;
+      gap: 10px;
   }
-  .player-card { flex-basis: calc(50% - 5px); /* Divide em duas colunas */ }
-
-  .log-box {
-      width: 100%;
-      max-height: 180px; /* Limita altura do log em mobile */
-      flex-grow: 0; /* Não cresce desnecessariamente */
-  }
-  .board-area {
-      order: -1; /* Move a área do tabuleiro para o topo em telas menores */
-      gap: 15px;
-      width: 100%;
-  }
-  .status-bar {
-      font-size: 1em;
-      padding: 10px 15px;
-      margin-bottom: 10px;
-      min-width: 0;
-  }
-  .ludo-board-wrapper {
-      --ludo-board-size: min(95vw, 500px); /* Ajusta tamanho do tabuleiro */
-      padding: 10px;
+  .player-card {
+      flex-grow: 1; /* Cresce para ocupar espaço */
+      min-width: 180px; /* Garante tamanho mínimo */
   }
   .dice-area {
-      flex-direction: row; /* Componentes do dado lado a lado */
-      gap: 15px;
-      padding: 10px 20px;
+      flex-direction: row; /* Dado e botão de rolar lado a lado */
       justify-content: center;
+      gap: 20px;
+      padding: 10px 20px;
+      width: 100%;
+  }
+  #dice-display {
+      font-size: 3em;
+  }
+  #btn-roll {
+      padding: 10px 20px;
+      font-size: 1em;
+  }
+  .game-log-box {
+      min-height: 100px;
+      margin-top: 0; /* Remove margem extra */
+      width: 100%; /* Ocupa a largura total */
+      display: none; /* Pode esconder o log em telas menores se a prioridade for o tabuleiro */
   }
   .game-actions {
+      width: 100%;
       flex-wrap: wrap;
       justify-content: center;
   }
   .game-actions .btn {
-      flex-grow: 1;
-      min-width: 120px;
-      font-size: 0.9em;
+      flex-grow: 1; /* Botões crescem para preencher */
+      min-width: 140px;
   }
-  .history-card {
-      flex-direction: column;
-      align-items: flex-start;
-  }
-  .history-card-right {
-      width: 100%;
-      align-items: flex-end;
-      flex-direction: row;
-      justify-content: space-between;
+
+  .ludo-board-wrapper {
+      --ludo-board-size: min(95vw, 600px); /* Ocupa mais espaço na tela */
+      --ludo-cell-size: calc(var(--ludo-board-size) / 15);
   }
 }
 
-@media (max-width: 700px) {
-  .app-header {
-    padding: 10px 15px;
-  }
-  .header-logo {
-    font-size: 1.2em;
-  }
-  .header-username {
-    max-width: 80px;
-  }
-  .auth-container, .lobby-container, .waiting-container, .history-container, .modal-box {
-      padding: 25px;
-  }
-  .logo h1 {
-      font-size: 2em;
-  }
-  .mode-selectors {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  }
-  .mode-btn {
-      padding: 10px 10px;
-      font-size: 0.9em;
-  }
-  .mode-btn .mode-icon {
-      font-size: 1.5em;
-  }
-  .mode-btn .mode-desc {
-      display: none; /* Esconde descrição para economizar espaço */
-  }
-  .lobby-actions .option-group { /* Grupos de opção no lobby */
-    flex-direction: column;
-    gap: 8px;
-  }
-  .player-count-btns, .ai-count-btns, .color-selector {
-      flex-wrap: wrap; gap: 8px;
-  }
-  .player-count-btns .btn, .ai-count-btns .btn, .color-selector .color-btn {
-    flex-basis: calc(50% - 4px); /* Dois botões por linha */
-    padding: 8px 5px;
-    font-size: 13px;
-  }
-  .room-code-box {
-      flex-direction: column; gap: 10px;
-  }
-  #display-room-code {
-      font-size: 1.8em;
-  }
-  .waiting-players {
-      padding: 8px;
-      font-size: 13px;
-  }
-  .history-header {
-      flex-direction: column; text-align: center; gap: 10px;
-  }
-  .history-header h2 { font-size: 1.5em; }
-  .modal-actions { flex-direction: column; gap: 10px; margin-top: 15px; }
+/* ===== RESPONSIVE — MOBILE ===== */
+@media (max-width: 600px) {
+    .app-header {
+      padding: 10px 15px;
+    }
+    .header-logo {
+      font-size: 1.2em;
+    }
+    .header-username {
+      max-width: 80px;
+    }
+    .auth-container, .lobby-container, .waiting-container, .history-container, .modal-box {
+        padding: 25px;
+    }
+    .logo h1 {
+        font-size: 2em;
+    }
+    /* Estilos para o mode-btn no mobile */
+    .mode-btn {
+        padding: 10px 10px;
+        font-size: 0.9em;
+    }
+    .mode-btn .mode-icon {
+        font-size: 1.5em;
+    }
+    .mode-btn .mode-desc {
+        display: none; /* Esconde descrição para economizar espaço */
+    }
+    .player-count-btns, .ai-count-btns {
+        flex-wrap: wrap; gap: 10px;
+    }
+    .player-count-btns .btn, .ai-count-btns .btn {
+      min-width: unset; /* Reseta min-width */
+      flex-basis: calc(50% - 5px); /* Dois botões por linha */
+    }
+    .room-code-box {
+        flex-direction: column; gap: 10px;
+    }
+    #display-room-code {
+        font-size: 1.8em;
+    }
+    .waiting-players-list {
+        padding: 10px;
+    }
+    .history-header {
+        flex-direction: column; text-align: center; gap: 10px;
+    }
+    .history-header h2 { font-size: 1.5em; }
+    .modal-actions { flex-direction: column; gap: 10px; margin-top: 20px; }
 
-  /* Ajustes específicos para o tabuleiro de Ludo em telas muito pequenas */
-  .pawn {
-      font-size: 0.7em; /* Reduz o texto do peão */
-      border-width: 1px; /* Borda mais fina */
-  }
-  .dice-area {
-    flex-direction: column; /* Dado e botão de rolar voltam a ser em coluna */
-    gap: 10px;
-  }
-  #dice-display {
-    font-size: 40px;
-    width: 60px;
-    height: 60px;
-  }
-
-  .game-sidebar .player-card {
-    flex-basis: 100%; /* Cartões de jogador em uma única coluna em telas bem pequenas */
-  }
+    /* Ajustes específicos para o tabuleiro de Ludo em telas muito pequenas */
+    .pawn {
+        font-size: 0.9em; /* Reduz o texto do peão */
+        border-width: 1px; /* Borda mais fina */
+        width: calc(var(--ludo-cell-size) * 0.7); /* Menor */
+        height: calc(var(--ludo-cell-size) * 0.7);
+    }
+    .ludo-cell.safe::after {
+        font-size: 0.6em; /* Estrela menor */
+    }
 }

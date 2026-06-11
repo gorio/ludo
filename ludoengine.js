@@ -1,6 +1,6 @@
 /* =====================================================
    LudoEngine - Lógica principal do jogo de Ludo
-   Usa window.LUDO_CONSTANTS para constantes do tabuleiro e jogo.
+   Depende de `ludo_constants.js` ser carregado primeiro.
 ===================================================== */
 class LudoEngine {
   constructor() {
@@ -8,470 +8,415 @@ class LudoEngine {
   }
 
   reset() {
-    this.players = [];      // Array de objetos Player
+    this.players = [];      // Array de objetos Player { id, name, color, isAI, photoURL, pawns: [], score }
     this.currentTurn = 0;   // Índice do jogador atual no array `players`
     this.diceValue = 0;     // Valor do dado
     this.phase = 'roll';    // 'roll' (rolar dado) ou 'move' (mover peça)
-    this.status = 'waiting';// 'waiting', 'playing', 'finished', 'resigned', 'abandoned'
+    this.status = 'waiting';// 'waiting', 'playing', 'finished'
     this.winner = null;     // ID do jogador vencedor
-    this.extraTurn = false; // Indica se o jogador ganhou uma jogada extra (rolar 6, capturar ou chegar em casa)
+    this.extraTurn = false; // Indica se o jogador ganhou uma jogada extra (rolar 6 ou capturar)
     this.log = [];          // Histórico de eventos do jogo
-    this.lastMovedPawn = null; // Para indicar visualmente a última peça movida
+    this.activePlayerId = null; // ID do jogador ativo
+    this.playablePawns = []; // Índices dos peões que podem ser movidos na fase 'move'
   }
 
   /**
-   * Configura o jogo com os jogadores fornecidos.
-   * @param {Array<Object>} playerConfigs Array de objetos { id, name, isAI, color, photoURL }.
+   * Adiciona jogadores ao jogo e inicializa suas peças.
+   * @param {Array<object>} playerConfigs Array de { id, name, color, isAI, photoURL }
    */
   setupGame(playerConfigs) {
-    this.reset();
     if (!playerConfigs || playerConfigs.length < 2 || playerConfigs.length > 4) {
-      console.error('Ludo: Configuração de jogadores inválida. Mínimo 2, máximo 4.');
-      return;
+      throw new Error("O Ludo requer entre 2 e 4 jogadores.");
     }
-
     this.players = playerConfigs.map(config => ({
       id: config.id,
       name: config.name,
-      isAI: config.isAI,
       color: config.color,
-      photoURL: config.photoURL,
-      pawns: Array(window.LUDO_CONSTANTS.PIECES_PER_PLAYER).fill(0).map(() => ({
-        pos: -1,        // -1: na base, 0-51: no tabuleiro, >51: casa final
-        homeStep: -1,   // -1: nao no home path, 0-5: casas do home path
-        finished: false // true se a peça chegou ao centro
+      isAI: config.isAI || false,
+      photoURL: config.photoURL || null,
+      pawns: Array.from({ length: window.LUDO_CONSTANTS.PIECES_PER_PLAYER }, () => ({
+        pos: -1,        // -1 = na base, 0-51 = no caminho, 0-5 = no homePath
+        homeStep: -1,   // -1 = não no homePath, 0-5 = posição no homePath
+        finished: false // Se a peça chegou ao centro
       })),
       score: 0 // Quantas peças chegaram ao centro
     }));
-    this.status = 'playing';
+
     this.currentTurn = 0;
-    this.logEvent(null, 'Jogo iniciado!');
+    this.status = 'playing';
+    this.activePlayerId = this.players[this.currentTurn].id;
+    this.eventList = []; // Array para guardar eventos para logs, para ser salvo no Firebase
+    this.logEvent(null, "Jogo iniciado!");
   }
 
   /**
-   * Retorna o jogador ativo no turno atual.
-   * @returns {Object} Objeto do jogador atual.
+   * Getter para o jogador ativo.
+   * @returns {object|null} O objeto do jogador ativo.
    */
   get activePlayer() {
     return this.players[this.currentTurn];
   }
 
   /**
-   * Avança para o próximo turno.
-   * Lida com jogadas extras e pular jogadores finalizados.
+   * Rola o dado.
+   * @returns {number} O valor do dado.
    */
-  nextTurn() {
-    if (this.extraTurn) {
-      this.extraTurn = false;
-      this.logEvent(this.activePlayer.color, `${this.activePlayer.name} tem uma jogada extra!`);
-      return; // Permanece no mesmo jogador para jogada extra
+  rollDice() {
+    if (this.phase !== 'roll' || this.status !== 'playing') {
+      this.logEvent(null, "Não é possível rolar o dado agora.");
+      return 0;
+    }
+    const roll = Math.floor(Math.random() * 6) + 1;
+    // const roll = 6; // Para testes
+    this.diceValue = roll;
+    this.eventList.push({ type: 'roll', player: this.activePlayer.id, value: roll });
+    this.logEvent(this.activePlayer.color, `${this.activePlayer.name} rolou um ${roll}.`);
+
+    this.playablePawns = this._getPlayablePawns(roll);
+
+    if (this.playablePawns.length === 0) {
+      this.logEvent(this.activePlayer.color, `Sem movimentos válidos para ${this.activePlayer.name}.`);
+      this.phase = 'roll'; // Reseta a fase para que o próximo jogador possa rolar
+      this.extraTurn = false; // Não há turno extra se não moveu
+      this.nextTurn();
+    } else {
+      this.phase = 'move';
+      this.extraTurn = (roll === 6); // Rolar 6 dá turno extra
+    }
+    return roll;
+  }
+
+  /**
+   * Retorna os índices dos peões que podem ser movidos com o valor do dado.
+   * @param {number} roll - o valor do dado
+   * @returns {Array<number>} Um array de índices dos peões (0 a 3) que podem se mover.
+   */
+  _getPlayablePawns(roll) {
+    const activePlayer = this.activePlayer;
+    const playable = [];
+    activePlayer.pawns.forEach((pawn, pIdx) => {
+      if (pawn.finished) return; // Peças que já chegaram não podem se mover
+
+      // Condição para tirar peça da base
+      if (pawn.pos === -1 && roll === 6) {
+        playable.push(pIdx);
+        // Não retorna - a peça fora da base também pode mover se roll for 6 e ela já estiver no caminho
+      }
+      // Condição para mover peça já no caminho principal ou home path
+      else if (pawn.pos !== -1 || pawn.homeStep !== -1) {
+        // Simula o movimento para verificar se é válido
+        const { willBeOnBoard, newPos, newHomeStep } = this._simulateMove(activePlayer.color, pawn.pos, pawn.homeStep, roll);
+
+        if (willBeOnBoard) {
+            // Verifica se a casa de destino não está ocupada por dois peões do próprio jogador
+            const destinationCoords = this._getCoordinatesForPosition(activePlayer.color, newPos, newHomeStep);
+
+            // Só faz a verificação se a peça de destino não for "segura" e for a casa da home ou path
+            if (destinationCoords) { // Se for null, a peça chegou
+                const isSafeCell = window.LUDO_CONSTANTS.SAFE_SQUARES.includes(this._getGlobalPathIndex(destinationCoords));
+                const occupiedBySamePlayer = this.players.some(p => p.id === activePlayer.id && p.color === activePlayer.color && p.pawns.some(
+                    otherPawn => otherPawn !== pawn && !otherPawn.finished &&
+                                 (otherPawn.pos !== -1 && this._getCoordinatesForPosition(activePlayer.color, otherPawn.pos, otherPawn.homeStep)[0] === destinationCoords[0] &&
+                                  this._getCoordinatesForPosition(activePlayer.color, otherPawn.pos, otherPawn.homeStep)[1] === destinationCoords[1])
+                ));
+
+                // Ludo: um peão não pode ocupar uma casa j á ocupada por outro peão do mesmo jogador (a menos que já tenha dois - 'stack')
+                // E também não pode entrar numa safe_square ocupada por adversário
+                // Simplificação: não pode ter 2 peças do MESMO jogador numa mesma casa (apenas na saída, com 6)
+                // Vamos refinar: Uma casa pode ter no máximo duas peças. Se a casa destino tiver duas peças DO MESMO JOGADOR,
+                // NÃO pode mover para lá. Se tiver uma ou nenhuma, pode. Se tiver uma ou duas do adversário, pode ir para lá e "capturar".
+
+                const pawnsAtDestination = this.players.flatMap(p => p.pawns)
+                    .filter(otherPawn => otherPawn !== pawn && !otherPawn.finished)
+                    .filter(otherPawn => {
+                        const otherPawnCoords = this._getCoordinatesForPosition(p.color, otherPawn.pos, otherPawn.homeStep);
+                        return otherPawnCoords && otherPawnCoords[0] === destinationCoords[0] && otherPawnCoords[1] === destinationCoords[1];
+                    });
+
+                // Se o destino tem 2 peças, não pode mover para lá (Ludo padrão não permite 3)
+                if (pawnsAtDestination.length >= 2) {
+                    continue; // Não é um movimento válido se já há duas peças
+                }
+                // Se o destino tem 1 peça e é do próprio jogador, ainda pode mover
+                // Se o destino tem 1 peça e é do ADVERSÁRIO, e não é casa segura, pode mover para capturar
+                // Se o destino tem 1 peça e é do ADVERSÁRIO, e É casa segura, NÃO pode mover para capturar.
+                if (pawnsAtDestination.length === 1) {
+                    const otherPawnPlayer = this.players.find(p => p.pawns.includes(pawnsAtDestination[0]));
+                    if (otherPawnPlayer.color === activePlayer.color) {
+                       // Pode mover se já tem 1 peça, resultando em 2 suas na mesma casa.
+                       // Padrão Ludo permite 2, não 3.
+                        if (pawnsAtDestination.length === 1) playable.push(pIdx);
+                        continue;
+                    } else { // É um peão adversário
+                        if (window.LUDO_CONSTANTS.SAFE_SQUARES.includes(this._getGlobalPathIndex(destinationCoords))) {
+                            // Casa segura Ocupada por adversário - não pode capturar
+                            continue;
+                        }
+                    }
+                }
+            }
+            playable.push(pIdx);
+        }
+      }
+    });
+    return playable;
+  }
+
+  /**
+   * Simula o movimento de uma peça para uma nova posição.
+   * @param {string} playerColor Cor do jogador.
+   * @param {number} currentPos Posição atual (-1 para base, 0-51 para path_coords).
+   * @param {number} currentHomeStep Posição atual no homePath (-1 para não no homePath, 0-5 no homePath).
+   * @param {number} roll Valor do dado.
+   * @returns {{willBeOnBoard: boolean, newPos: number, newHomeStep: number, finished: boolean}} O estado simulado.
+   */
+  _simulateMove(playerColor, currentPos, currentHomeStep, roll) {
+    let newPos = currentPos;
+    let newHomeStep = currentHomeStep;
+    let finished = false;
+    let willBeOnBoard = true; // Indica se a peça permanece no tabuleiro ou chega ao centro
+
+    const playerStartPathIndex = window.LUDO_CONSTANTS.HOME_START_POS_INDEX[playerColor];
+    const playerFinalEntryBoardPosIndex = window.LUDO_CONSTANTS.FINAL_ENTRY_BOARD_POS_INDEX[playerColor];
+
+    if (currentPos === -1) { // Peça na base
+      if (roll === 6) {
+        newPos = playerStartPathIndex;
+        newHomeStep = -1;
+      } else {
+        willBeOnBoard = false; // Não move, continua na base
+      }
+    } else if (currentHomeStep !== -1) { // Peça no homePath
+      newHomeStep = currentHomeStep + roll;
+      if (newHomeStep >= window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
+        finished = true;
+        willBeOnBoard = false;
+      }
+    } else { // Peça no caminho principal
+      let nextPos = (currentPos + roll);
+
+      // Checando se a peça entra no HOME PATH
+      if (currentPos <= playerFinalEntryBoardPosIndex && nextPos > playerFinalEntryBoardPosIndex) {
+          // A peça está antes ou na casa de entrada, e o roll a levará para além dela, significando entrada no home path
+          const stepsIntoHomePath = nextPos - playerFinalEntryBoardPosIndex -1; // -1 pq entra na casa 0 do home path após a casa final do board
+
+          // Calcula a nova posição no home path. A casa final do PATH_COORDS é 51.
+          // Depois de sair do PATH_COORDS[FINAL_ENTRY_BOARD_POS_INDEX], o paw passa para HOME_PATHS[COLOR][0].
+          // Então, o cálculo é: roll - (distância_até_a_entrada_do_home_path).
+          const pathLengthBeforeHome = (playerFinalEntryBoardPosIndex - currentPos); // Casas a percorrer no caminho principal
+          if (pathLengthBeforeHome <= roll) {
+              newHomeStep = roll - pathLengthBeforeHome -1; // -1 porque a transição para a primeira casa do homePath consome 1 movimento
+              if (newHomeStep < 0) newHomeStep = 0; // Garante que comece em 0 se o roll cai na primeira casa do home path
+              newPos = -1; // Já não está mais no path_coords
+              if (newHomeStep >= window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
+                  finished = true;
+                  willBeOnBoard = false;
+              }
+          } else {
+              // Continua no caminho principal
+              newPos = nextPos % window.LUDO_CONSTANTS.BOARD_STEPS; // Usa módulo para circular o tabuleiro
+              newHomeStep = -1;
+          }
+      } else {
+          // Continua no caminho principal
+          newPos = nextPos % window.LUDO_CONSTANTS.BOARD_STEPS; // Usa módulo para circular o tabuleiro
+          newHomeStep = -1;
+      }
     }
 
+    return { willBeOnBoard, newPos, newHomeStep, finished };
+  }
+
+
+  /**
+   * Move uma peça específica do jogador ativo.
+   * @param {number} pawnIdx Índice da peça (0 a 3).
+   * @returns {boolean} True se o movimento foi bem-sucedido.
+   */
+  doMovePawn(pawnIdx) {
+    if (this.phase !== 'move' || this.status !== 'playing') {
+      this.logEvent(null, "Não é possível mover a peça agora.");
+      return false;
+    }
+    const activePlayer = this.activePlayer;
+    const pawn = activePlayer.pawns[pawnIdx];
+
+    // Verifica se este peão está entre os peões que podem ser movidos
+    if (!this.playablePawns.includes(pawnIdx)) {
+        this.logEvent(activePlayer.color, `Peão ${pawnIdx+1} não pode ser movido.`);
+        return false;
+    }
+
+    const roll = this.diceValue;
+
+    // Lógica para tirar peça da base
+    if (pawn.pos === -1 && roll === 6) {
+      pawn.pos = window.LUDO_CONSTANTS.HOME_START_POS_INDEX[activePlayer.color];
+      pawn.homeStep = -1;
+      this._handleCapture(activePlayer, pawn); // Verifica captura na saída
+      this.logEvent(activePlayer.color, `${activePlayer.name} tirou o peão ${pawnIdx+1} da base.`);
+      this.eventList.push({ type: 'move', player: activePlayer.id, pawn: pawnIdx, to: pawn.pos, isHome: false, fromBase: true });
+    } else if (pawn.pos !== -1 || pawn.homeStep !== -1) { // Peça já no caminho ou home path
+      const { newPos, newHomeStep, finished } = this._simulateMove(activePlayer.color, pawn.pos, pawn.homeStep, roll);
+
+      pawn.pos = newPos;
+      pawn.homeStep = newHomeStep;
+      pawn.finished = finished;
+
+      if (finished) {
+        activePlayer.score++;
+        this.logEvent(activePlayer.color, `${activePlayer.name} levou o peão ${pawnIdx+1} para casa!`);
+        this.eventList.push({ type: 'move', player: activePlayer.id, pawn: pawnIdx, to: 'finished' });
+
+        if (activePlayer.score === window.LUDO_CONSTANTS.PIECES_PER_PLAYER) {
+          this.status = 'finished';
+          this.winner = activePlayer.id;
+          this.logEvent(null, `Fim de jogo! ${activePlayer.name} venceu!`);
+          this.eventList.push({ type: 'gameover', winner: activePlayer.id });
+        }
+      } else {
+        this._handleCapture(activePlayer, pawn); // Verifica se houve captura
+        this.logEvent(activePlayer.color, `${activePlayer.name} moveu o peão ${pawnIdx+1} para a casa ${this._getGlobalPathIndex(this._getCoordinatesForPosition(pawn.color, pawn.pos, pawn.homeStep))}.`);
+        this.eventList.push({ type: 'move', player: activePlayer.id, pawn: pawnIdx, to: pawn.pos, isHome: pawn.homeStep !== -1 });
+      }
+    } else {
+      // Este caso não deveria acontecer se playablePawns está correto
+      return false;
+    }
+
+    this.phase = 'roll'; // Reseta a fase para que o próximo jogador possa rolar
+    this.playablePawns = []; // Limpa peões jogáveis após o movimento
+
+    // Se o jogo não terminou, avança o turno ou dá turno extra
+    if (this.status === 'playing') {
+      if (!this.extraTurn && !activePlayer.pawns.some(p => p.finished && p.score === window.LUDO_CONSTANTS.PIECES_PER_PLAYER)) {
+        this.nextTurn();
+      } else {
+        // Se há turno extra, reseta apenas o dado e a fase, mantendo o jogador
+        this.diceValue = 0;
+        this.extraTurn = false; // Resetando extra turn depois de conceder
+        this.phase = 'roll';
+        this.logEvent(activePlayer.color, `Turno extra para ${activePlayer.name}! Role o dado novamente.`);
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Verifica se houve uma captura após o movimento de um peão.
+   * @param {object} activePlayer O jogador que acabou de mover.
+   * @param {object} movedPawn O peão que foi movido.
+   */
+  _handleCapture(activePlayer, movedPawn) {
+    const movedPawnCoords = this._getCoordinatesForPosition(activePlayer.color, movedPawn.pos, movedPawn.homeStep);
+    if (!movedPawnCoords) return; // Peça finalizou ou ainda está na base
+
+    const isSafeCell = window.LUDO_CONSTANTS.SAFE_SQUARES.includes(this._getGlobalPathIndex(movedPawnCoords));
+
+    if (isSafeCell) return; // Não há captura em casas seguras
+
+    this.players.forEach(player => {
+      if (player.id === activePlayer.id) return; // Não captura as próprias peças
+
+      player.pawns.forEach(pawn => {
+        if (pawn.finished || pawn.pos === -1 || pawn.homeStep !== -1) return; // Captura só em peças no caminho principal
+        const otherPawnCoords = this._getCoordinatesForPosition(player.color, pawn.pos, pawn.homeStep);
+
+        if (otherPawnCoords && movedPawnCoords[0] === otherPawnCoords[0] && movedPawnCoords[1] === otherPawnCoords[1]) {
+          // Captura!
+          pawn.pos = -1; // Volta para a base
+          this.extraTurn = true; // Captura dá turno extra
+          this.logEvent(activePlayer.color, `${activePlayer.name} capturou o peão ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[player.color]} de ${player.name}!`);
+          this.eventList.push({ type: 'capture', player: activePlayer.id, pawnCaptured: pawn, capturedBy: movedPawn });
+        }
+      });
+    });
+  }
+
+  /**
+   * Avança para o próximo turno.
+   */
+  nextTurn() {
+    this.diceValue = 0; // Reseta o dado
+    this.phase = 'roll';
+    this.extraTurn = false; // Garante que não há turno extra pendente
+
+    // Encontra o próximo jogador que não venceu
     let nextPlayerIndex = (this.currentTurn + 1) % this.players.length;
     let attempts = 0;
     while (this.players[nextPlayerIndex].score === window.LUDO_CONSTANTS.PIECES_PER_PLAYER && attempts < this.players.length) {
-      // Pula jogadores que já terminaram
-      nextPlayerIndex = (nextPlayerIndex + 1) % this.players.length;
-      attempts++;
+        nextPlayerIndex = (nextPlayerIndex + 1) % this.players.length;
+        attempts++;
     }
 
     if (attempts === this.players.length) {
-      // Todos os jogadores terminaram, o jogo deveria ter acabado
-      this.status = 'finished';
-      return;
+        // Todos os jogadores foram testados e todos pontuaram, ou não há mais jogadores para jogar.
+        // Isso pode indicar que o jogo já deveria ter terminado.
+        // O caso de `status = 'finished'` já é tratado antes pelo `doMovePawn`.
+        console.warn('Tentou avançar turno, mas todos pontuaram ou não há mais jogadores ativos.');
+        return;
     }
 
     this.currentTurn = nextPlayerIndex;
-    this.diceValue = 0; // Reseta o dado
-    this.phase = 'roll'; // Próximo jogador sempre começa rolando
-    this.logEvent(this.activePlayer.color, `Vez de ${this.activePlayer.name}.`);
+    this.activePlayerId = this.players[this.currentTurn].id;
+    this.logEvent(this.activePlayer.color, `É a vez de ${this.activePlayer.name}.`);
   }
 
   /**
    * Registra um evento no log do jogo.
-   * @param {string} color Cor do jogador (opcional).
-   * @param {string} message Mensagem do log.
+   * @param {string|null} color Cor associada ao evento (null para neutro).
+   * @param {string} message A mensagem do log.
    */
   logEvent(color, message) {
-    // Limita o log para não ficar muito grande
-    if (this.log.length > 50) {
-      this.log.shift();
-    }
-    this.log.push({ color, message, timestamp: Date.now() });
+    this.log.push({ timestamp: Date.now(), color: color, message: message });
+    // Limita o tamanho do log (opcional)
+    if (this.log.length > 50) this.log.shift();
   }
 
   /**
-   * Rola o dado para o jogador atual.
-   * @returns {number} O valor do dado.
+   * Traduz coordenadas do tabuleiro lógico (pos/homeStep) para coordenadas (row, col) no grid 15x15.
+   * @param {string} playerColor Cor do jogador (usado para homePath)
+   * @param {number} pos Posição no caminho principal (-1 para base, 0-51 para path_coords)
+   * @param {number} homeStep Posição no homePath (-1 para não no homePath, 0-5 no homePath)
+   * @returns {[number, number]|null} [row, col] ou null se na base/finalizado.
    */
-  rollDice() {
-    if (this.phase !== 'roll' || this.status !== 'playing') return 0;
-
-    this.diceValue = Math.floor(Math.random() * 6) + 1;
-    this.phase = 'move';
-    this.lastMovedPawn = null; // Reseta a peça destacada
-
-    this.logEvent(this.activePlayer.color, `${this.activePlayer.name} rolou um ${this.diceValue}.`);
-
-    const validMoves = this.getValidMoves();
-    if (validMoves.length === 0) {
-      this.logEvent(this.activePlayer.color, `Nenhum movimento válido para ${this.diceValue}.`);
-      this.nextTurn(); // Passa o turno automaticamente se não houver movimentos
+  _getCoordinatesForPosition(playerColor, pos, homeStep) {
+    if (pos === -1 && homeStep === -1) { // Peça na base
+        // Não temos uma única coordenada para 'na base', o renderBoard usa BASE_POSITIONS
+        return null;
     }
-
-    // Se rolou 6, ganha uma jogada extra
-    if (this.diceValue === 6) {
-      this.extraTurn = true;
+    if (homeStep !== -1) { // Peça no Home Path
+      return window.LUDO_CONSTANTS.HOME_PATHS[playerColor][homeStep];
     }
-
-    return this.diceValue;
+    if (pos !== -1) { // Peça no caminho principal
+      return window.LUDO_CONSTANTS.PATH_COORDS[pos];
+    }
+    return null; // Caso a peça esteja finalizada
   }
 
   /**
-   * Obtém a lista de índices de peões do jogador atual que podem ser movidos com o dado atual.
-   * @returns {Array<number>} Array de índices de peões (0 a PIECES_PER_PLAYER-1).
+   * Retorna o índice global na PATH_COORDS para uma coordenada (r,c), se for uma casa de path.
+   * Útil para verificar casas seguras.
+   * @param {[number, number]} coords [row, col]
+   * @returns {number|null} Índice da casa no PATH_COORDS ou null.
    */
-  getValidMoves() {
-    const player = this.activePlayer;
-    const moves = [];
-    if (this.diceValue === 0) return []; // Não rolou o dado ainda
-
-    player.pawns.forEach((pawn, index) => {
-      if (pawn.finished) return; // Peças que já chegaram não podem se mover
-
-      if (pawn.pos === -1) { // Peça na base
-        if (this.diceValue === 6) {
-          // Só pode sair da base com um 6
-          moves.push(index);
-        }
-      } else { // Peça no jogo (trilha principal ou home path)
-        // Calcula a nova posição no caminho principal
-        const currentPathIndex = pawn.pos;
-        const newPathIndex = currentPathIndex + this.diceValue;
-
-        // Verifica se a peça está para entrar no home path
-        const playerStartPathIndex = window.LUDO_CONSTANTS.HOME_START_POS[player.color];
-        const playerFinalEntryTileIndex = (playerStartPathIndex + window.LUDO_CONSTANTS.BOARD_STEPS - 1) % window.LUDO_CONSTANTS.BOARD_STEPS;
-        const pathToHomeEntry = (currentPathIndex <= playerFinalEntryTileIndex && newPathIndex > playerFinalEntryTileIndex) ||
-                                (playerStartPathIndex === 0 && newPathIndex > window.LUDO_CONSTANTS.BOARD_STEPS -1 && newPathIndex - (window.LUDO_CONSTANTS.BOARD_STEPS -1) > 0 ); // se deu a volta
-        // Esta lógica precisa ser ajustada para lidar com a "volta" no tabuleiro
-
-        // Lógica simplificada:
-        // Se a peça não está no home path
-        if (pawn.homeStep === -1) {
-            // Verifica se a peça vai para o home path ou continua na trilha principal
-            const targetColorPathIndex = (window.LUDO_CONSTANTS.HOME_START_POS[player.color] + newPathIndex) % window.LUDO_CONSTANTS.BOARD_STEPS;
-
-            // Calcula a posição absoluta no caminho (passou do START_POS do jogador?)
-            let absoluteCurrentPos = pawn.pos;
-            let absoluteNewPos = pawn.pos + this.diceValue;
-
-            // Quantas casas o jogador ainda tem que percorrer na trilha comum para chegar à sua entrada do home path
-            let distanceToHomeEntry;
-            if (window.LUDO_CONSTANTS.HOME_START_POS[player.color] === 0) {
-                 // Cor vermelha precisa dar a volta no tabuleiro todo.
-                 distanceToHomeEntry = (window.LUDO_CONSTANTS.BOARD_STEPS - pawn.pos);
-            } else if (pawn.pos < window.LUDO_CONSTANTS.HOME_START_POS[player.color] ) {
-                distanceToHomeEntry = window.LUDO_CONSTANTS.HOME_START_POS[player.color] - pawn.pos;
-            } else { // pawn.pos >= HOME_START_POS[player.color]
-                distanceToHomeEntry = (window.LUDO_CONSTANTS.BOARD_STEPS - pawn.pos) + window.LUDO_CONSTANTS.HOME_START_POS[player.color];
-            }
-
-
-            // Se a jogada entra no home path (ou passa dela indo para as casas finais)
-            if (this.canEnterHomePath(player.color, pawn.pos, this.diceValue)) {
-                const stepInHomePath = this.getStepInHomePath(player.color, pawn.pos, this.diceValue);
-                if (stepInHomePath <= window.LUDO_CONSTANTS.HOME_PATH_LENGTH) { // Pode entrar no home path ou ir até o final
-                    // Verifica se a casa final está bloqueada por outra peça
-                    if (!this.isHomePathBlocked(player.color, stepInHomePath)) {
-                        moves.push(index);
-                    }
-                }
-            } else {
-                // Se continua na trilha principal, verifica colisões
-                const targetPosOnBoard = (pawn.pos + this.diceValue) % window.LUDO_CONSTANTS.BOARD_STEPS;
-                if (!this.isBlockedAt(targetPosOnBoard, player.color)) {
-                    moves.push(index);
-                }
-            }
-        } else { // Peça já está no home path
-            const newHomeStep = pawn.homeStep + this.diceValue;
-            if (newHomeStep <= window.LUDO_CONSTANTS.HOME_PATH_LENGTH) { // Pode se mover dentro do home path ou para o centro
-                 // Move dentro do Home Path, verifica se a casa está bloqueada
-                if (!this.isHomePathBlocked(player.color, newHomeStep)) {
-                    moves.push(index);
-                }
-            }
-        }
+  _getGlobalPathIndex(coords) {
+      if (!coords) return null;
+      for (let i = 0; i < window.LUDO_CONSTANTS.PATH_COORDS.length; i++) {
+          if (window.LUDO_CONSTANTS.PATH_COORDS[i][0] === coords[0] && window.LUDO_CONSTANTS.PATH_COORDS[i][1] === coords[1]) {
+              return i;
+          }
       }
-    });
-
-    return moves;
-  }
-
-  /**
-   * Verifica se o dado rolado permite que a peça entre no Home Path.
-   * @param {string} playerColor
-   * @param {number} currentPos Posição atual do peão na PATH_COORDS.
-   * @param {number} diceValue
-   * @returns {boolean}
-   */
-  canEnterHomePath(playerColor, currentPos, diceValue) {
-    const playerStartPathIndex = window.LUDO_CONSTANTS.HOME_START_POS[playerColor]; // Onde a cor começa na trilha principal
-    const currentAbsolutePos = currentPos;
-    const absPosAfterMove  = currentPos + diceValue;
-
-    // Calcular o índice da casa de entrada para o corredor final de cada cor.
-    // Exemplo: Vermelho entra no Home Path depois de passar o índice 51 e ir para 0.
-    // O último passo na trilha comum para o Vermelho antes do Home Path é o 51.
-    // O último passo na trilha comum para o Azul é o 12 (antes do 13).
-    // O último passo na trilha comum para o Verde é o 25 (antes do 26).
-    // O último passo na trilha comum para o Amarelo é o 38 (antes do 39).
-
-    // Determinar o "ponto de virada" para entrar no home path para esta cor
-    let entryToHomePathIndexOnBoard; // Este é o último índice de PATH_COORDS antes de entrar no Home Path
-    if (playerColor === 'red') {
-      entryToHomePathIndexOnBoard = window.LUDO_CONSTANTS.PATH_COORDS.length - 1; // Última casa é o 51
-    } else {
-      entryToHomePathIndexOnBoard = (window.LUDO_CONSTANTS.HOME_START_POS[playerColor] -1 + window.LUDO_CONSTANTS.BOARD_STEPS) % window.LUDO_CONSTANTS.BOARD_STEPS;
-    }
-
-
-    // Verifica se a peça vai passar pelo 'entryToHomePathIndexOnBoard'
-    // E se não está vindo diretamente após o ponto de entrada da base
-    if (currentPos <= entryToHomePathIndexOnBoard && absPosAfterMove > entryToHomePathIndexOnBoard) {
-        // A peça passou pelo ponto de entrada para o Home Path
-        return true;
-    }
-     // Em caso de RED, o ponto de entrada é dar a volta na trilha toda (passar pelo 51)
-    if (playerColor === 'red' && currentPos > entryToHomePathIndexOnBoard && absPosAfterMove >= window.LUDO_CONSTANTS.BOARD_STEPS) {
-        return true; // Deu a volta completa e vai entrar
-    }
-
-
-    // Verifica a situação de um peão que está na casa de saída do jogador.
-    // E.g., se um peão vermelho está em (6,1) e rola um dado que o levaria a 7,1 (homepath[0])
-    const homePathStartingBoardPos = window.LUDO_CONSTANTS.ENTRY_POS[playerColor];
-    const pathIdxOfHomePathStart = window.LUDO_CONSTANTS.PATH_COORDS.findIndex(coord => coord[0] === homePathStartingBoardPos[0] && coord[1] === homePathStartingBoardPos[1]);
-    if (currentPos === pathIdxOfHomePathStart && diceValue === window.LUDO_CONSTANTS.HOME_PATH_LENGTH + 1) { // Exemplo simplificado para entrar direto
-        // Isso é complexo. A forma mais robusta é refazer o cálculo de "posição destino" para cobrir todos os cenários.
-        return false; // Por enquanto, falso
-    }
-
-    return false; // Padrão
-  }
-
-  /**
-   * Calcula o passo no home path para onde um peão se moveria.
-   * Considera que a peça já está na trilha principal ou para entrar nela.
-   * @param {string} playerColor Cor do jogador.
-   * @param {number} currentMainPathPos Posição atual na PATH_COORDS (-1 se na base).
-   * @param {number} diceValue Valor do dado.
-   * @returns {number} O índice no HOME_PATHS (0-5) ou -1 se não entra no home path.
-   */
-  getStepInHomePath(playerColor, currentMainPathPos, diceValue) {
-    const playerStartPathIndex = window.LUDO_CONSTANTS.HOME_START_POS[playerColor]; // Onde a cor começa a sua "volta" no tabuleiro
-    const pathLength = window.LUDO_CONSTANTS.BOARD_STEPS;
-
-    let stepsAroundBoard; // Quantas casas o peão já andou na trilha principal a partir do 'HOME_START_POS'
-    if (currentMainPathPos >= playerStartPathIndex) {
-      stepsAroundBoard = currentMainPathPos - playerStartPathIndex;
-    } else {
-      // Se a peça já deu a volta (passou pelo fim do array e está no início)
-      stepsAroundBoard = pathLength - playerStartPathIndex + currentMainPathPos;
-    }
-
-    const totalStepsInMainPath = stepsAroundBoard + diceValue;
-    const remainingStepsForHomePath = totalStepsInMainPath - (pathLength - 1); // Quantos passos após a última casa da trilha principal
-
-    if (currentMainPathPos === -1 && diceValue === 6) { // Peça sai da base
-      return 0; // Entra na primeira casa do Home Path (se a saída for a entrada)
-    }
-
-    if (totalStepsInMainPath >= pathLength) { // Se a peça vai passar por todas as casas da trilha principal
-      let homePathStep = totalStepsInMainPath - (pathLength - 1);
-      if (currentMainPathPos === 51) { // RED color is at the end of the common path.
-          homePathStep = diceValue - 1; // If it rolls '1', it goes to homePath[0].
-      }
-      if (playerColor === 'red' && currentMainPathPos === window.LUDO_CONSTANTS.PATH_COORDS.length - 1) { // Está na última casa do BOARD_STEPS
-        homePathStep = (diceValue - 1); // Primeiras casas no Home Path (0 a 5)
-      } else if (playerColor === 'blue' && currentMainPathPos === window.LUDO_CONSTANTS.HOME_START_POS.blue - 1) {
-          homePathStep = (diceValue -1);
-      } // ... e assim por diante
-      //
-      // Refatorar esta logica. É muito propensa a erros.
-
-      homePathStep = totalStepsInMainPath - (pathLength -1);
-      if(homePathStep >=0 && homePathStep <= window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-        return homePathStep;
-      }
-    }
-
-    return -1; // Não entra no home path com esta jogada
+      return null;
   }
 
 
   /**
-   * Verifica se uma casa no home path está bloqueada por um peão do jogador.
-   * @param {string} playerColor Cor do jogador.
-   * @param {number} homeStep Passo no home path (0-5).
-   * @returns {boolean} True se bloqueada, falso caso contrário.
+   * Serializa o estado atual do jogo para armazenamento (ex: Firebase).
+   * @returns {object} Estado serializado.
    */
-  isHomePathBlocked(playerColor, homeStep) {
-    if (homeStep === window.LUDO_CONSTANTS.HOME_PATH_LENGTH) { // O centro não pode ser bloqueado
-        return false; // A casa final é sempre livre (mas só um peão por slot)
-    }
-
-    const player = this.players.find(p => p.color === playerColor);
-    if (!player) return false;
-
-    // Verifica se já há um peão ali (não pode ter 2 peões do mesmo jogador nas casas finais)
-    return player.pawns.some(p => p.homeStep === homeStep && !p.finished);
-  }
-
-  /**
-   * Move um peão do jogador ativo.
-   * @param {number} pawnIndex Índice do peão a ser movido (0 a PIECES_PER_PLAYER-1).
-   * @returns {boolean} True se o movimento foi bem-sucedido.
-   */
-  doMovePawn(pawnIndex) {
-    const player = this.activePlayer;
-    const pawn = player.pawns[pawnIndex];
-
-    if (this.phase !== 'move' || this.status !== 'playing' || this.diceValue === 0 || pawn.finished) return false;
-
-    // Valida se o movimento é permitido
-    const validMoves = this.getValidMoves();
-    if (!validMoves.includes(pawnIndex)) {
-      console.warn('Movimento inválido para peão:', pawnIndex);
-      return false;
-    }
-
-    let moved = false;
-    let gainedExtraTurn = false;
-    this.lastMovedPawn = { playerColor: player.color, pawnIndex: pawnIndex }; // Marca para visualização
-
-    if (pawn.pos === -1) { // Peça saindo da base com um 6
-      pawn.pos = window.LUDO_CONSTANTS.HOME_START_POS[player.color];
-      this.logEvent(player.color, `${player.name} tirou o peão ${window.LUDO_CONSTANTS.PIECES_SYMBOLS[player.color]} com um 6!`);
-      moved = true;
-    } else { // Peça no jogo
-      const playerStartPathIndex = window.LUDO_CONSTANTS.HOME_START_POS[player.color];
-      const pathLength = window.LUDO_CONSTANTS.BOARD_STEPS;
-
-      // Lógica para entrar no home path ou continuar na trilha principal
-      let oldPos = pawn.pos;
-      let newCalculatedPos = oldPos + this.diceValue;
-
-      // Se a peça ESTAVA na trilha principal
-      if (pawn.homeStep === -1) {
-        // Verifica se a jogada entra no home path
-        let stepsPastHomeEntry = -1;
-        if (player.color === 'red') { // Red wraps around the end of the path
-            if (oldPos <= (pathLength - 1) && newCalculatedPos > (pathLength - 1)) {
-                stepsPastHomeEntry = newCalculatedPos - (pathLength - 1);
-            }
-        } else {
-            const entryHomePathIdx = (playerStartPathIndex - 1 + pathLength) % pathLength;
-            if (oldPos <= entryHomePathIdx && newCalculatedPos > entryHomePathIdx) {
-                stepsPastHomeEntry = newCalculatedPos - entryHomePathIdx;
-            }
-        }
-
-        if (stepsPastHomeEntry > 0 && stepsPastHomeEntry <= window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-            // Entrou no home path
-            pawn.pos = -2; // Marca que não está mais na trilha principal
-            pawn.homeStep = stepsPastHomeEntry -1; // 0-indexed
-            this.logEvent(player.color, `${player.name} moveu o peão ${window.LUDO_CONSTANTS.PIECES_SYMBOLS[player.color]} para a casa final.`);
-            gainedExtraTurn = true; // Ganha uma rodada extra ao entrar na casa final
-            moved = true;
-        } else {
-            // Continua na trilha principal
-            const targetPosOnBoard = (pawn.pos + this.diceValue) % pathLength;
-            const captured = this.checkCapture(targetPosOnBoard, player.color);
-            if (captured) {
-                this.logEvent(player.color, `${player.name} capturou um peão ${window.LUDO_CONSTANTS.PIECES_SYMBOLS[captured.color]}!`);
-                gainedExtraTurn = true; // Ganha uma jogada extra ao capturar
-            }
-            pawn.pos = targetPosOnBoard;
-            moved = true;
-        }
-      } else { // Peça JÁ ESTAVA no home path
-        let newHomeStep = pawn.homeStep + this.diceValue;
-        if (newHomeStep === window.LUDO_CONSTANTS.HOME_PATH_LENGTH ) {
-          pawn.finished = true;
-          pawn.homeStep = -1; // Não está mais no home path, mas no centro
-          player.score++;
-          this.logEvent(player.color, `${player.name} levou o peão ${window.LUDO_CONSTANTS.PIECES_SYMBOLS[player.color]} para o centro!`);
-          gainedExtraTurn = true; // Ganha uma jogada extra ao chegar no centro
-          moved = true;
-          this.checkWinner();
-        } else if (newHomeStep < window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-            pawn.homeStep = newHomeStep;
-            this.logEvent(player.color, `${player.name} moveu o peão ${window.LUDO_CONSTANTS.PIECES_SYMBOLS[player.color]} dentro do corredor final.`);
-            moved = true;
-        }
-      }
-    }
-
-    if (moved) {
-      if (gainedExtraTurn) {
-        this.extraTurn = true;
-      } else {
-        this.phase = 'roll'; // Reinicia para o próximo rolar de dado
-        this.nextTurn(); // Passa o turno se não houve jogada extra
-      }
-      this.diceValue = 0; // Consome o valor do dado
-      return true;
-    }
-    return false;
-  }
-
-
-  /**
-   * Verifica se uma casa da trilha principal está bloqueada por um peão inimigo ou ocupada por um peão amigo (não safe square).
-   * @param {number} targetPos Índice de destino na PATH_COORDS.
-   * @param {string} movingPlayerColor Cor do jogador que está movendo.
-   * @returns {Object|null} Objeto do peão capturado se houver captura, ou null.
-   */
-  checkCapture(targetPos, movingPlayerColor) {
-    if (window.LUDO_CONSTANTS.SAFE_SQUARES.includes(targetPos)) {
-      return null; // Casas seguras não permitem captura
-    }
-
-    for (const player of this.players) {
-      if (player.color === movingPlayerColor) continue; // Não verifica com peões do próprio jogador
-      for (const pawn of player.pawns) {
-        if (!pawn.finished && pawn.pos === targetPos && pawn.homeStep === -1) {
-          // Captura: move o peão de volta para a base
-          pawn.pos = -1;
-          pawn.homeStep = -1;
-          this.logEvent(movingPlayerColor, `${player.name}'s peão ${window.LUDO_CONSTANTS.PIECES_SYMBOLS[pawn.color]} foi capturado!`);
-          return pawn; // Retorna o peão capturado
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Verifica se o jogo tem um vencedor.
-   */
-  checkWinner() {
-    for (const player of this.players) {
-      if (player.score === window.LUDO_CONSTANTS.PIECES_PER_PLAYER) {
-        this.winner = player.id;
-        this.status = 'finished';
-        this.logEvent(player.color, `${player.name} venceu o jogo!`);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Métodos de serialização e deserialização para Firebase Realtime Database
   serialize() {
-    return JSON.stringify({
+    return {
       players: this.players,
       currentTurn: this.currentTurn,
       diceValue: this.diceValue,
@@ -479,23 +424,27 @@ class LudoEngine {
       status: this.status,
       winner: this.winner,
       extraTurn: this.extraTurn,
-      log: this.log
-    });
+      log: this.log,
+      activePlayerId: this.activePlayerId,
+      // Não serializa playablePawns, é um estado transitório
+    };
   }
 
-  deserialize(jsonString) {
-    if (!jsonString) {
-      console.error("Tentativa de deserializar string vazia ou nula.");
-      return;
-    }
-    const data = JSON.parse(jsonString);
+  /**
+   * Deserializa o estado do jogo a partir de um objeto.
+   * @param {object} data Objeto de estado serializado.
+   */
+  deserialize(data) {
+    if (!data) return;
     this.players = data.players || [];
     this.currentTurn = data.currentTurn ?? 0;
     this.diceValue = data.diceValue ?? 0;
     this.phase = data.phase || 'roll';
-    this.status = data.status || 'playing'; // Padrão é 'playing' ao carregar
+    this.status = data.status || 'waiting';
     this.winner = data.winner || null;
     this.extraTurn = data.extraTurn ?? false;
     this.log = data.log || [];
+    this.activePlayerId = data.activePlayerId || (this.players[this.currentTurn] ? this.players[this.currentTurn].id : null);
+    this.playablePawns = this._getPlayablePawns(this.diceValue); // Recalcula ao deserializar se estiver em fase de 'move'
   }
 }
