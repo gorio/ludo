@@ -92,13 +92,13 @@ class LudoAI {
       // Simula o movimento real para verificar captura
       let didCapture = false;
       if (checkPawn.pos === -1 && dice === 6) {
-        checkPawn.pos = ENTRY_POS[player.color];
+        checkPawn.pos = ENGINE_CONSTANTS.ENTRY_POS[player.color]; // Changed to use ENGINE_CONSTANTS
         didCapture = captureCheckEngine._checkCapture(player.color, checkPawn.pos);
       } else if (checkPawn.homeStep === -1 && checkPawn.pos !== -1) {
         const newPos = (checkPawn.pos + dice);
         // Verifica se a peça permanece no tabuleiro principal e não entra no corredor final
-        const finalEntryPos = FINAL_ENTRY_BOARD_POS[player.color];
-        if (!(checkPawn.pos <= finalEntryPos && newPos > finalEntryPos) && newPos < BOARD_STEPS) {
+        const finalEntryPos = ENGINE_CONSTANTS.FINAL_ENTRY_BOARD_POS[player.color]; // Changed to use ENGINE_CONSTANTS
+        if (!(checkPawn.pos <= finalEntryPos && newPos > finalEntryPos) && newPos < ENGINE_CONSTANTS.BOARD_STEPS) { // Changed to use ENGINE_CONSTANTS
           checkPawn.pos = newPos;
           didCapture = captureCheckEngine._checkCapture(player.color, checkPawn.pos);
         }
@@ -109,12 +109,12 @@ class LudoAI {
       }
 
       // Prioriza casas seguras
-      if (tempPawn.homeStep === -1 && SAFE_SQUARES.includes(tempPawn.pos)) {
+      if (tempPawn.homeStep === -1 && ENGINE_CONSTANTS.SAFE_SQUARES.includes(tempPawn.pos)) { // Changed to use ENGINE_CONSTANTS
         currentScore += 10;
       }
 
       // Prioriza mover peças mais avançadas (para evitar bloqueios ou para chegar mais rápido)
-      currentScore += (tempPawn.homeStep !== -1 ? tempPawn.homeStep + BOARD_STEPS : tempPawn.pos);
+      currentScore += (tempPawn.homeStep !== -1 ? tempPawn.homeStep + ENGINE_CONSTANTS.BOARD_STEPS : tempPawn.pos); // Changed to use ENGINE_CONSTANTS
 
       if (currentScore > bestScore) {
         bestScore = currentScore;
