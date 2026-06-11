@@ -29,14 +29,13 @@
         </div>
     </header>
 
-    <!-- Conteúdo principal - gerenciado por JavaScript para mostrar apenas 1 tela por vez -->
     <main class="content-wrapper">
         <!-- Tela de Autenticação -->
         <section id="screen-auth" class="screen">
             <div class="auth-container">
                 <div class="logo">
-                     <i class="fas fa-dice logo-icon"></i> <!-- Ícone de dado para Ludo -->
-                    <h1>Ludo Online</h1>
+                     <i class="fas fa-chess-knight logo-icon"></i> <!-- Ícone do tema Xadrez -->
+                    <h1>Bem-vindo!</h1>
                     <p>Faça login ou registre-se para jogar.</p>
                 </div>
 
@@ -68,212 +67,191 @@
                     <button id="btn-register" class="btn btn-primary">Registrar</button>
                 </div>
 
+                <p id="auth-error" class="auth-error"></p>
+
                 <div class="divider">OU</div>
 
                 <button id="btn-login-google" class="btn btn-google">
                     <i class="fab fa-google"></i> Continuar com Google
                 </button>
                 <button id="btn-guest" class="btn btn-secondary">Entrar como Visitante</button>
-
-                <p id="auth-error" class="error-msg"></p>
-                <p class="auth-note">Seu progresso será salvo se você fizer login.</p>
             </div>
         </section>
 
-        <!-- Tela do Lobby (após login/visitante) -->
-        <section id="screen-lobby" class="screen">
-            <div class="lobby-body">
-                <div class="lobby-container">
-                    <div class="logo">
-                        <i class="fas fa-dice logo-icon"></i>
-                        <h1>Ludo Online</h1>
-                        <p>Escolha seu modo de jogo.</p>
-                    </div>
+        <!-- Tela de Lobby (pós-autenticação) -->
+        <section id="screen-lobby" class="screen lobby-body">
+            <div class="lobby-container">
+                <div class="logo">
+                    <i class="fas fa-hat-wizard logo-icon"></i> <!-- Novo ícone para Ludo -->
+                    <h1>Ludo Online</h1>
+                    <p>Escolha seu modo de jogo para começar a diversão!</p>
+                </div>
 
-                    <!-- Seleção de Modo: Multiplayer vs IA -->
-                    <div class="mode-selector">
-                        <button class="mode-btn active" data-mode="multiplayer" id="btn-mode-multiplayer">
-                            <i class="fas fa-users mode-icon"></i>
-                            <span class="mode-label">Multiplayer Online</span>
-                            <span class="mode-desc">Jogue com amigos ou outros jogadores.</span>
-                        </button>
-                        <button class="mode-btn" data-mode="ai" id="btn-mode-ai">
-                            <i class="fas fa-robot mode-icon"></i>
-                            <span class="mode-label">Jogar VS IA</span>
-                            <span class="mode-desc">Desafie o computador.</span>
-                        </button>
-                    </div>
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="ai" id="btn-mode-ai">
+                        <i class="fas fa-robot mode-icon"></i>
+                        <span class="mode-label">VS Computador</span>
+                        <span class="mode-desc">Jogue contra a inteligência artificial.</span>
+                    </button>
+                    <button class="mode-btn" data-mode="multiplayer" id="btn-mode-multiplayer">
+                        <i class="fas fa-users mode-icon"></i>
+                        <span class="mode-label">Multiplayer Online</span>
+                        <span class="mode-desc">Crie ou junte-se a uma sala com amigos.</span>
+                    </button>
+                </div>
 
-                    <!-- Painel Multiplayer -->
-                    <div id="panel-multiplayer" class="mode-panel">
-                        <div class="option-group">
-                            <span class="option-label">Número de Jogadores Humanos (incluindo você)</span>
-                            <div class="player-count-btns">
-                                <button class="btn btn-secondary active" data-players="2" id="btn-players-2">2</button>
-                                <button class="btn btn-secondary" data-players="3" id="btn-players-3">3</button>
-                                <button class="btn btn-secondary" data-players="4" id="btn-players-4">4</button>
-                            </div>
+                <!-- Painel para Modo VS Computador -->
+                <div id="panel-ai" class="mode-panel">
+                    <div class="option-group">
+                        <label class="option-label">Número de Computadores</label>
+                        <div class="player-count-btns" id="lobby-ai-count">
+                            <button class="btn btn-secondary active" data-count="1">1 IA</button>
+                            <button class="btn btn-secondary" data-count="2">2 IAs</button>
+                            <button class="btn btn-secondary" data-count="3">3 IAs</button>
                         </div>
+                    </div>
+                    <button id="btn-start-ai-game" class="btn btn-primary btn-full">Iniciar Jogo</button>
+                </div>
+
+                <!-- Painel para Modo Multiplayer -->
+                <div id="panel-multiplayer" class="mode-panel hidden">
+                    <div class="option-group">
+                        <label class="option-label">Criar/Aguardar Sala</label>
                         <div class="lobby-actions">
-                            <button id="btn-create-room" class="btn btn-primary btn-full">Criar Sala</button>
-                            <div class="divider">OU</div>
-                            <div class="join-group">
-                                <input type="text" id="input-room" maxlength="6" placeholder="Código da Sala">
-                                <button id="btn-join-room" class="btn btn-secondary">Entrar</button>
-                            </div>
-                            <div class="divider">OU</div>
-                            <div class="join-group">
-                                <input type="text" id="input-spectate" maxlength="6" placeholder="Código da Sala">
-                                <button id="btn-spectate-room" class="btn btn-secondary">Assistir</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Painel VS IA -->
-                    <div id="panel-ai" class="mode-panel hidden">
-                        <div class="ai-options">
                             <div class="option-group">
-                                <span class="option-label">Número de IAs</span>
-                                <div class="ai-count-btns">
-                                    <button class="btn btn-secondary active" data-ais="1" id="btn-ais-1">1 IA</button>
-                                    <button class="btn btn-secondary" data-ais="2" id="btn-ais-2">2 IAs</button>
-                                    <button class="btn btn-secondary" data-ais="3" id="btn-ais-3">3 IAs</button>
+                                <label class="option-label">Jogadores Humanos Esperados</label>
+                                <div class="player-count-btns" id="lobby-player-count">
+                                    <button class="btn btn-secondary active" data-count="2">2 Jog.</button>
+                                    <button class="btn btn-secondary" data-count="3">3 Jog.</button>
+                                    <button class="btn btn-secondary" data-count="4">4 Jog.</button>
                                 </div>
                             </div>
-                            <!-- Implementação da dificuldade removida conforme memória do usuário -->
-                            <!-- <div class="option-group">
-                                <span class="option-label">Dificuldade da IA</span>
-                                <div class="difficulty-selector">
-                                    <button class="diff-btn active" data-level="facil" id="btn-diff-facil">Fácil</button>
-                                    <button class="diff-btn" data-level="medio" id="btn-diff-medio">Médio</button>
-                                    <button class="diff-btn" data-level="dificil" id="btn-diff-dificil">Difícil</button>
-                                </div>
-                            </div> -->
-                        </div>
-                        <div class="lobby-actions">
-                            <button id="btn-start-ai-game" class="btn btn-primary btn-full">Começar Jogo VS IA</button>
+                            <button id="btn-create-room" class="btn btn-primary btn-full">Criar Nova Sala</button>
                         </div>
                     </div>
 
-                    <p id="lobby-error" class="error-msg"></p>
-                    <div class="lobby-actions">
-                        <button id="btn-open-ludo-history" class="btn btn-ghost btn-full"><i class="fas fa-history"></i> Seu Histórico</button>
-                        <button id="btn-open-ludo-live-games" class="btn btn-ghost btn-full"><i class="fas fa-satellite-dish"></i> Partidas Ao Vivo</button>
+                    <div class="divider">OU</div>
+
+                    <div class="option-group">
+                        <label class="option-label">Entrar em Sala Existente</label>
+                        <div class="join-group">
+                            <input type="text" id="input-room" class="form-input" placeholder="CÓDIGO DA SALA" maxlength="6">
+                            <button id="btn-join-room" class="btn btn-primary">Entrar</button>
+                        </div>
+                    </div>
+
+                    <div class="divider">OU</div>
+
+                    <div class="option-group">
+                        <label class="option-label">Assistir Partida</label>
+                        <div class="join-group">
+                            <input type="text" id="input-spectate" class="form-input" placeholder="CÓDIGO DA PARTIDA" maxlength="6">
+                            <button id="btn-spectate-room" class="btn btn-secondary">Assistir</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- Tela de Espera (Multiplayer) -->
-        <section id="screen-waiting" class="screen">
-            <div class="waiting-container">
-                <i class="fas fa-hourglass-half spinner logo-icon"></i>
-                <h2>Aguardando Jogadores</h2>
-                <p>Compartilhe o código para seus amigos entrarem.</p>
-                <div class="room-code-box">
-                    <span>Sala:</span>
-                    <span id="display-room-code">XXXXXX</span>
-                </div>
-                <p id="copy-feedback" class="copy-feedback"></p>
-
-                <h3>Jogadores Conectados:</h3>
-                <div id="waiting-players-list" class="waiting-players-list">
-                    <!-- Lista de jogadores dinamicamente preenchida aqui -->
-                </div>
-                <p class="waiting-players-count">
-                    <span id="waiting-current-players">1</span> / <span id="waiting-max-players">4</span> Jogadores
-                </p>
+                <p id="lobby-error" class="error-msg"></p>
 
                 <div class="lobby-actions">
-                    <button id="btn-start-multiplayer-game-host" class="btn btn-primary btn-full hidden">Iniciar Partida</button>
-                    <button id="btn-cancel-game" class="btn btn-secondary btn-full">Sair da Sala</button>
+                    <button id="btn-history-ludo" class="btn btn-secondary">Meu Histórico</button>
+                    <button id="btn-live-games-ludo" class="btn btn-secondary">Partidas Ao Vivo</button>
                 </div>
             </div>
         </section>
 
-        <!-- Tela do Jogo (Ludo) -->
-        <section id="screen-game" class="screen">
-            <div class="game-layout">
-                <!-- Sidebar Esquerda: Jogadores -->
-                <div class="game-sidebar">
-                    <div id="players-list" class="players-list">
-                        <!-- Cards dos jogadores serão renderizados aqui -->
-                    </div>
-                    <!-- Área para o dado e controles -->
-                    <div class="game-controls-section">
-                        <div class="dice-area">
-                            <span id="dice-display" class="dice-display">🎲</span>
-                            <button id="btn-roll" class="btn btn-primary btn-full">Rolar Dado</button>
-                        </div>
-                        <div class="game-actions">
-                            <button id="btn-resign" class="btn btn-danger btn-small">Desistir</button>
-                            <button id="btn-back-lobby" class="btn btn-secondary btn-small hidden">Voltar para o Lobby</button>
-                        </div>
-                    </div>
+        <!-- Tela de Espera (para Multiplayer) -->
+        <section id="screen-waiting" class="screen">
+            <div class="waiting-container">
+                <h2>Aguardando Jogadores...</h2>
+                <p>Compartilhe este código para que seus amigos se juntem:</p>
+                <div class="room-code-box">
+                    <span id="display-room-code">XXXXXX</span>
+                    <button id="btn-copy-room-code" class="btn btn-small btn-secondary"><i class="fas fa-copy"></i> Copiar</button>
                 </div>
+                <p id="copy-feedback" class="copy-feedback"></p>
+                <div class="spinner"></div>
 
-                <!-- Área Central: Tabuleiro do Ludo -->
-                <div class="board-area">
-                    <div id="spectator-bar" class="spectator-bar hidden"></div>
-                    <div id="status-bar" class="status-bar"></div>
-                    <div class="ludo-board-wrapper">
-                        <div id="ludo-board" class="ludo-board">
-                            <!-- Células e peões do Ludo renderizados por JS -->
-                        </div>
-                    </div>
+                <p class="waiting-status">
+                    <span id="waiting-current-players">1</span> / <span id="waiting-max-players">2</span> jogadores na sala.
+                </p>
+                <div class="waiting-players-list" id="waiting-players-list"></div>
+
+                <button id="btn-start-multiplayer-game-host" class="btn btn-primary hidden">Iniciar Partida</button>
+                <button id="btn-cancel-game" class="btn btn-danger">Cancelar Sala / Sair</button>
+            </div>
+        </section>
+
+        <!-- Tela de Jogo (Ludo) -->
+        <section id="screen-game" class="screen game-layout">
+             <div class="spectator-bar hidden" id="spectator-bar">
+                <button id="btn-back-lobby" class="btn btn-ghost btn-small"><i class="fas fa-arrow-left"></i> Voltar pro Lobby</button>
+                <span>Você está assistindo esta partida.</span>
+            </div>
+
+            <div class="game-sidebar">
+                <div class="players-list-container">
+                    <ul id="players-list" class="players-list">
+                        <!-- player-card component will be rendered here via JS -->
+                    </ul>
                 </div>
+                <div class="game-log-box">
+                    <h3>Registro de Eventos</h3>
+                    <div id="log-entries" class="log-entries"></div>
+                </div>
+            </div>
 
-                <!-- Sidebar Direita: Log de Eventos -->
-                <div class="game-sidebar log-sidebar">
-                    <div class="log-box">
-                        <h3>Log de Eventos</h3>
-                        <div id="log-entries" class="log-entries">
-                            <!-- Entradas do log dinamicamente preenchidas aqui -->
-                        </div>
+            <div class="board-area">
+                <div id="dice-display" class="dice-display">🎲</div>
+                <div id="ludo-board" class="ludo-board">
+                    <!-- O tabuleiro Ludo 15x15 será gerado aqui por JS -->
+                </div>
+                <div class="game-controls">
+                    <button id="btn-roll" class="btn btn-primary"><i class="fas fa-dice d6"></i> Rolar</button>
+                    <button id="btn-resign" class="btn btn-danger hidden"><i class="fas fa-flag"></i> Desistir</button>
+                </div>
+                <div id="status-bar" class="status-bar"></div>
+            </div>
+             <!-- Modals -->
+            <div id="modal-gameover" class="modal hidden">
+                <div class="modal-box">
+                    <div id="gameover-icon" class="gameover-icon"></div>
+                    <h3 id="gameover-title">Partida Encerrada!</h3>
+                    <p id="gameover-msg">Detalhes do resultado.</p>
+                    <div class="gameover-actions">
+                        <button id="btn-gameover-lobby" class="btn btn-primary btn-full">Voltar para o Lobby</button>
+                        <button id="btn-gameover-history" class="btn btn-secondary btn-full">Ver Histórico</button>
+                        <button id="btn-gameover-new" class="btn btn-ghost btn-full">Jogar Novamente</button>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Tela de Histórico de Ludo -->
-        <section id="screen-ludo-history" class="screen">
-            <div class="history-layout">
-                <div class="history-header">
-                    <h2>Seu Histórico de Ludo</h2>
-                    <div id="ludo-history-stats" class="history-stats"></div>
-                    <button id="btn-history-ludo-back" class="btn btn-secondary btn-small">Voltar</button>
-                </div>
-                <div id="ludo-history-list" class="history-list"></div>
+        <section id="screen-ludo-history" class="screen history-layout">
+            <div class="history-header">
+                <button id="btn-history-ludo-back" class="btn btn-ghost btn-small"><i class="fas fa-arrow-left"></i> Voltar</button>
+                <h2>Meu Histórico de Partidas de Ludo</h2>
+                <div id="ludo-history-stats" class="history-stats"></div>
+            </div>
+            <div id="ludo-history-list" class="history-list">
+                <!-- Cards de histórico de Ludo serão gerados aqui por JS -->
             </div>
         </section>
 
-        <!-- Tela de Partidas Ao Vivo de Ludo -->
-        <section id="screen-ludo-live-games" class="screen">
-            <div class="history-layout">
-                <div class="history-header">
-                    <h2>Partidas de Ludo Ao Vivo</h2>
-                    <button id="btn-live-games-ludo-back" class="btn btn-secondary btn-small">Voltar</button>
-                </div>
-                <div id="ludo-live-games-list" class="history-list"></div>
+        <!-- Tela de Partidas de Ludo ao Vivo -->
+        <section id="screen-ludo-live-games" class="screen history-layout">
+            <div class="history-header">
+                <button id="btn-live-games-ludo-back" class="btn btn-ghost btn-small"><i class="fas fa-arrow-left"></i> Voltar</button>
+                <h2>Partidas de Ludo Ao Vivo</h2>
+            </div>
+             <div id="ludo-live-games-list" class="history-list">
+                <!-- Cards de partidas de Ludo ao vivo serão gerados aqui por JS -->
             </div>
         </section>
     </main>
 
-    <!-- Modais -->
-    <div id="modal-gameover" class="modal hidden">
-        <div class="modal-box">
-            <span id="gameover-icon" class="gameover-icon">🏆</span>
-            <h3 id="gameover-title">Fim de Jogo!</h3>
-            <p id="gameover-msg">Mensagem da partida.</p>
-            <div class="gameover-actions">
-                <button id="btn-gameover-new" class="btn btn-primary btn-full">Novo Jogo</button>
-                <button id="btn-gameover-history" class="btn btn-secondary btn-full">Ver Histórico</button>
-                <button id="btn-gameover-lobby" class="btn btn-secondary btn-full">Voltar ao Lobby</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Seus scripts JS. A ordem é CRÍTICA. -->
+    <!-- Seus scripts JS (na ordem CORRETA) -->
     <script src="ludo_constants.js"></script>
     <script src="auth.js"></script>
     <script src="history.js"></script>

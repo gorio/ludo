@@ -1,164 +1,141 @@
 /* =====================================================
-   ludoai.js - Inteligência Artificial para o jogo de Ludo
-   Define a classe LudoAI. Carregado ANTES de app.js.
-   Depende de LudoEngine.
+   LUDOAI - Implementação da Inteligência Artificial para Ludo
 ===================================================== */
 class LudoAI {
   constructor() {
-    // Nível de dificuldade pode ser adicionado aqui, mas o usuário pediu para simplificar
+    // A IA não precisa de estado interno complexo, ela opera com base no estado do engine.
   }
 
   /**
-   * Decide qual o melhor movimento para a IA.
-   * @param {LudoEngine} engine A instância atual do motor do jogo.
-   * @returns {number|null} O índice da peça a ser movida ou null se nenhum movimento for possível.
+   * Retorna a melhor jogada que a IA pode fazer.
+   * @param {LudoEngine} engine A instância atual do motor do jogo Ludo.
+   * @returns {number|null} O índice da peça a ser movida ou null se não houver movimentos.
    */
   getBestMove(engine) {
     const activePlayer = engine.activePlayer;
-    if (!activePlayer || !activePlayer.isAI) {
+    if (!activePlayer.isAI || engine.phase !== 'move' || engine.diceValue === 0) {
+      console.warn('AI não pode fazer movimento agora.');
       return null;
     }
 
-    const diceValue = engine.diceValue;
-    const playablePawns = engine.playablePawns;
+    const validMoves = engine.getValidMoves();
 
-    if (playablePawns.length === 0) {
-      return null; // Nenhuma peça para mover
+    if (validMoves.length === 0) {
+      return null; // Nenhumm movimento possível
     }
 
-    // Estratégia simples da IA:
-    // 1. Dar prioridade para tirar peças da base (se rolou 6).
-    // 2. Dar prioridade a movimentos que levam as peças para casa (finalizadas).
-    // 3. Dar prioridade a movimentos que capturam peças do oponente.
-    // 4. Mover a peça que estiver mais avançada.
-    // 5. Se nenhuma das anteriores, mover a primeira peça jogável.
+    // Prioridades da IA (simples):
+    // 1. Tirar peça da base se rolou 6.
+    // 2. Mover peça que pode capturar um oponente.
+    // 3. Mover peça que pode entrar em casa segura.
+    // 4. Mover peça que pode ir para o corredor final.
+    // 5. Mover peça mais avançada.
+    // 6. Mover qualquer peça válida.
 
-    let bestPawnIdx = null;
-    let bestScore = -1; // Quanto maior o score, melhor o movimento
+    // === 1. Tirar peça da base se rolou 6 ===
+    if (engine.diceValue === 6) {
+      const pawnOnBaseIndex = activePlayer.pawns.findIndex(p => p.pos === -1);
+      if (pawnOnBaseIndex !== -1 && validMoves.includes(pawnOnBaseIndex)) {
+        return pawnOnBaseIndex;
+      }
+    }
 
-    for (const pawnIdx of playablePawns) {
-      const pawn = activePlayer.pawns[pawnIdx];
+    let bestMoveIndex = -1;
+    let bestMoveScore = -1; // Usamos um sistema de pontuação para o melhor movimento
+
+    for (const pawnIndex of validMoves) {
+      const pawn = activePlayer.pawns[pawnIndex];
       let currentScore = 0;
 
-      // Cria um clone do engine para simular o movimento sem alterar o estado real
+      // Cria uma cópia temporária do engine para simular movimentos
       const tempEngine = new LudoEngine();
-      tempEngine.deserialize(engine.serialize()); // Copia o estado atual
-      const tempPlayer = tempEngine.colorMap[activePlayer.color]; // Pega a referência do player clonado
-      const tempPawn = tempPlayer.pawns[pawnIdx];
+      tempEngine.deserialize(engine.serialize());
+      const tempPlayer = tempEngine.players.find(p => p.id === activePlayer.id);
+      const tempPawn = tempPlayer.pawns[pawnIndex];
 
       // Simula o movimento
-      let simulatedMoved = false;
-      let simulatedOldPos = { pos: tempPawn.pos, homeStep: tempPawn.homeStep };
+      const newPosInfo = tempEngine._calculateNewPosition(tempPlayer, tempPawn, engine.diceValue);
 
-      if (tempPawn.pos === -1 && diceValue === 6) {
-        tempPawn.pos = window.LUDO_CONSTANTS.HOME_START_POS[activePlayer.color];
-        simulatedMoved = true;
-      } else if (tempPawn.homeStep !== -1) {
-        const newHomeStep = tempPawn.homeStep + diceValue;
-        if (newHomeStep <= window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-          tempPawn.homeStep = newHomeStep;
-          if (newHomeStep === window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-            tempPawn.finished = true;
-            tempPlayer.score++;
-          }
-          simulatedMoved = true;
-        }
-      } else if (tempPawn.pos !== -1) {
-        const playerHomePathStartIdx = window.LUDO_CONSTANTS.HOME_START_POS[activePlayer.color];
-        const boardSteps = window.LUDO_CONSTANTS.BOARD_STEPS;
-        const currentPathPos = tempPawn.pos;
-        const newMainPathPos = currentPathPos + diceValue;
+      // === 2. Mover peça que pode capturar um oponente ===
+      if (!newPosInfo.isHomePath && newPosInfo.valid) { // Capturas só ocorrem no caminho principal
+        const targetGlobalPathIndex = newPosInfo.targetPos;
+        const targetCoords = window.LUDO_CONSTANTS.PATH_COORDS[targetGlobalPathIndex];
 
-        if (newMainPathPos < boardSteps) {
-            // Movimento normal no caminho principal
-            tempPawn.pos = newMainPathPos;
-            simulatedMoved = true;
-        } else {
-            // Peça pode estar entrando no home path ou dando a volta
-            const entryPathCoordIndex = window.LUDO_CONSTANTS.HOME_START_POS[activePlayer.color];
-            let hypotheticalNewPos = tempPawn.pos + diceValue;
-
-            if (hypotheticalNewPos >= entryPathCoordIndex && tempPawn.pos < entryPathCoordIndex) {
-              const stepsIntoHome = hypotheticalNewPos - entryPathCoordIndex;
-              if (stepsIntoHome < window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-                  tempPawn.pos = -1; // Remove da trilha principal
-                  tempPawn.homeStep = stepsIntoHome;
-                  simulatedMoved = true;
-              } else if (stepsIntoHome === window.LUDO_CONSTANTS.HOME_PATH_LENGTH) {
-                  tempPawn.pos = -1;
-                  tempPawn.homeStep = window.LUDO_CONSTANTS.HOME_PATH_LENGTH;
-                  tempPawn.finished = true;
-                  tempPlayer.score++;
-                  simulatedMoved = true;
+        // Se a casa não é segura, verifica se há peças de outros jogadores
+        if (!tempEngine._isSafeSquare(targetGlobalPathIndex)) {
+          const capturedOpponent = tempEngine.players.some(otherPlayer => {
+            if (otherPlayer.id === activePlayer.id) return false;
+            return otherPlayer.pawns.some(otherPawn => {
+              if (otherPawn.pos !== -1 && otherPawn.pos !== -2) { // Está no caminho principal
+                  const otherPawnCoords = window.LUDO_CONSTANTS.PATH_COORDS[otherPawn.pos];
+                  return otherPawnCoords[0] === targetCoords[0] && otherPawnCoords[1] === targetCoords[1];
               }
-            } else {
-                tempPawn.pos = newMainPathPos % boardSteps; // Continua no caminho principal dando a volta
-                simulatedMoved = true;
-            }
-        }
-      }
-
-      if (simulatedMoved) {
-        // --- Avalia o movimento ---
-
-        // 1. Saiu da base? (muito bom se o dado é 6)
-        if (simulatedOldPos.pos === -1 && tempPawn.pos !== -1) {
-          currentScore += 100; // Alta prioridade
-        }
-
-        // 2. Chegou em casa?
-        if (tempPawn.finished) {
-          currentScore += 200; // Prioridade máxima
-        }
-
-        // 3. Capturou peça do oponente?
-        // Verifica se a peça simulada está no caminho principal e não em uma casa segura
-        if (tempPawn.pos !== -1 && tempPawn.homeStep === -1 && !window.LUDO_CONSTANTS.SAFE_SQUARES.includes(tempPawn.pos)) {
-          tempEngine.players.forEach(otherPlayer => {
-            if (otherPlayer.id === activePlayer.id) return;
-            otherPlayer.pawns.forEach(otherPawn => {
-              if (otherPawn.pos === tempPawn.pos && otherPawn.homeStep === -1) {
-                currentScore += 150; // Muito bom, prioridade alta
-              }
+              return false;
             });
           });
-        }
 
-        // 4. Avançou uma peça (quanto mais avançada, melhor)
-        if (tempPawn.homeStep !== -1) {
-            currentScore += (tempPawn.homeStep + 1) * 2; // Maior pontuação para mais perto de casa
-        } else if (tempPawn.pos !== -1) {
-            // Calculo da posição real na trilha 0-51 (que é cíclica)
-            const playerHomePathStartIdx = window.LUDO_CONSTANTS.HOME_START_POS[activePlayer.color];
-            const relativePos = (tempPawn.pos - playerHomePathStartIdx + window.LUDO_CONSTANTS.BOARD_STEPS) % window.LUDO_CONSTANTS.BOARD_STEPS;
-            currentScore += relativePos; // Pontua por avançar no caminho
+          if (capturedOpponent) {
+            currentScore += 100; // Pontuação alta para captura
+          }
         }
+      }
 
-        // 5. Evitou ser capturado? (mais complexo de simular, vamos ignorar por enquanto para simplificar)
+      // === 3. Mover peça que pode entrar em casa segura (se não for a própria) ===
+      if (!newPosInfo.isHomePath && newPosInfo.valid && tempEngine._isSafeSquare(newPosInfo.targetPos)) {
+          // Garante que não é uma casa segura já ocupada por outra peça própria para evitar bloqueio
+          if (!tempEngine._isOccupiedByOwnPawn(tempPlayer, newPosInfo.targetPos, false, pawnIndex)) {
+              currentScore += 50; // Boa pontuação para segurança
+          }
+      }
 
-        // Se este movimento é melhor que o anterior, atualiza
-        if (currentScore > bestScore) {
-          bestScore = currentScore;
-          bestPawnIdx = pawnIdx;
-        }
+      // === 4. Mover peça que pode ir para o corredor final ===
+      if (newPosInfo.isHomePath && newPosInfo.valid) {
+        currentScore += 75 + newPosInfo.targetPos; // Quanto mais perto do objetivo, melhor
+      }
+
+      // === 5. Mover peça que pode alcançar a casa central ===
+      if (newPosInfo.isHomePath && newPosInfo.targetPos === (window.LUDO_CONSTANTS.HOME_PATH_LENGTH -1)) {
+          currentScore += 200; // Pontuação muito alta para chegar na casa central
+      }
+
+      // === 6. Mover peça mais avançada ===
+      // Penaliza peças que saem da base mas não avançam muito
+      if (pawn.pos === -1 && engine.diceValue === 6) {
+        currentScore += 10; // Incentiva tirar peças da base
+      } else if (pawn.pos !== -1 && !newPosInfo.isHomePath) {
+        // Quanto mais avançada a peça no caminho principal (maior o globalPathIndex), melhor
+        const playerStartPos = window.LUDO_CONSTANTS.HOME_START_POS[activePlayer.color];
+        let globalNextPos = newPosInfo.targetPos;
+
+        // Calcula a "distância percorrida" no ciclo do tabuleiro
+        let currentAbsPos = pawn.pos;
+        let nextAbsPos = newPosInfo.targetPos;
+
+        // Normalizar posições para a perspectiva do jogador, para que "mais longe" seja "mais avançado"
+        const normalizePos = (pos) => {
+            let offset = pos - playerStartPos;
+            if (offset < 0) offset += window.LUDO_CONSTANTS.BOARD_STEPS;
+            return offset;
+        };
+
+        const normalizedCurrentPos = normalizePos(pawn.pos);
+        const normalizedNextPos = normalizePos(newPosInfo.targetPos);
+
+        currentScore += (normalizedNextPos * 2); // Pontuação base para avançar
+      }
+
+      // Atualiza a melhor jogada
+      if (currentScore > bestMoveScore) {
+        bestMoveScore = currentScore;
+        bestMoveIndex = pawnIndex;
       }
     }
 
-    // Se nenhuma estratégia avançada encontrou um bom movimento, pega o primeiro jogável ou o mais avançado.
-    if (bestPawnIdx === null && playablePawns.length > 0) {
-        // Fallback: mover a peça mais avançada no tabuleiro
-        let mostAdvancedPos = -1;
-        playablePawns.forEach(pawnIdx => {
-          const pawn = activePlayer.pawns[pawnIdx];
-          let paw_pos = pawn.pos
-          if (pawn.homeStep !== -1) paw_pos = window.LUDO_CONSTANTS.BOARD_STEPS + pawn.homeStep; // Corrige pontuação para home path
-          if (paw_pos > mostAdvancedPos) {
-            mostAdvancedPos = paw_pos;
-            bestPawnIdx = pawnIdx;
-          }
-        });
+    if (bestMoveIndex !== -1) {
+      return bestMoveIndex;
     }
 
-    return bestPawnIdx;
+    // Se nenhuma das heurísticas gerou um high score, apenas pega o primeiro movimento válido (fallback)
+    return validMoves.length > 0 ? validMoves[0] : null;
   }
 }

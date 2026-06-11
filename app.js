@@ -2,7 +2,7 @@
    CONFIGURAÇÃO FIREBASE E VARIÁVEIS GLOBAIS
 ===================================================== */
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyCa0WmUo1PIrlaYW6Ei8ZZK3XLZ4i0gIfo", // SUBSTITUA PELA SUA CHAVE REAL!
+  apiKey:            "AIzaSyCa0WmUo1PIlYW6Ei8ZZK3XLZ4i0gIfo", // SUBSTITUA PELA SUA CHAVE REAL!
   authDomain:        "golf-oscar-romeo.firebaseapp.com",
   projectId:         "golf-oscar-romeo",
   storageBucket:     "golf-oscar-romeo.firebasestorage.app",
@@ -11,35 +11,33 @@ const FIREBASE_CONFIG = {
   appId:             "1:71631208569:web:e7a1cc7ad20903ce5ad4a8"
 };
 
-// Variáveis de estado do aplicativo (DEVE estar usando window.LUDO_CONSTANTS)
-// As instâncias das classes serão criadas AQUI em app.js
-let db, fbAuth; // Firebase Database e Auth
-let currentAuthManager;  // Instância de AuthManager
-let historyManager;      // Instância de HistoryManager
-let engine;              // Instância de LudoEngine
-let ai;                  // Instância de LudoAI
+// Variáveis de estado do aplicativo
+let db, firebaseApp; // Instâncias do Firebase DB e App
+let currentAuthManager;  // Instância de AuthManager (disponível globalmente)
+let historyManager;      // Instância de HistoryManager (disponível globalmente)
+let engine;              // Instância de LudoEngine (disponível globalmente)
+let ai;                  // Instância de LudoAI (disponível globalmente)
 
-// Variáveis de estado do jogo
+// Variáveis de estado do jogo LUDO
 let myId = 'guest_' + Math.random().toString(36).slice(2, 8); // ID temporário para visitantes
-let myColor = null;           // Cor do jogador atual na partida
-let gameActive = false;       // Indica se uma partida está em andamento
+let myColor = null;           // Cor do jogador atual na partida (ex: 'red', 'blue')
+let gameActive = false;       // Indica se uma partida de Ludo está em andamento
 let gameMode = 'ai';          // 'ai' ou 'multiplayer'
 let aiThinking = false;       // Indica se a IA está pensando/jogando
-let isSpectator = false;      // Indica se o usuário é espectador
+let isSpectator = false;      // Indica se o usuário é espectador de uma partida
 
 // Variáveis para Multiplayer
 let roomCode = null;        // Código da sala atual
 let roomRef = null;         // Referência do Firebase para a sala
 let specRef = null;         // Referência do Firebase para espectadores (pode ser a mesma de roomRef)
 let selectedHumanPlayersCount = 2; // Padrão para multiplayer (2-4)
-let selectedAiCount = 1;      // Padrão para partidas contra AI (1-3) (memória do usuário: 1 a 3 computadores)
+let selectedAiCount = 1;      // Padrão para partidas contra AI (1-3)
 
-// Variáveis para Replay (ainda implementadas para Xadrez, Ludo não tem replay estruturado assim)
-// MEMÓRIA DO USUÁRIO: "não precisar de replay no jogo Ludo".
-// Mantidas apenas como placeholders ou para compatibilidade futura com Xadrez.
+// Variáveis para Replay (do Xadrez, se mantidas)
+// Mantidas como placeholders, o Ludo não terá um replay "passo-a-passo" complexo por enquanto.
 let replayMoves = [];
 let replayTarget = 0;
-let replayEngine = null; // Replay deve usar ChessEngine se for para Xadrez
+let replayEngine = null;
 let replayInterval = null;
 let replayGameData = null;
 
@@ -66,170 +64,229 @@ function gel(id) {
  * @param {Function} handler O manipulador de evento.
  */
 function el(id, event, handler) {
+  // Encontre o elemento. `gel` (getElementById) é mais eficiente que querySelector.
   const element = gel(id);
   if (element) {
     element.addEventListener(event, handler);
-    // console.log(`Evento ${event} anexado a #${id}`); // Debugging de anexo de eventos
+    // console.log(`Evento '${event}' anexado a #${id}.`); // Debugging: remover em produção
   } else {
+    // Console.warn para IDs não encontrados, para ajudar a depurar HTML e JS.
     console.warn(`Elemento com ID '${id}' não encontrado para anexar evento '${event}'.`);
   }
 }
 
 /**
  * Escapa HTML para prevenir ataques XSS.
- * @param {string} str String a ser escapada.
- * @returns {string} String escapada.
+ * @param {string} str A string a ser escapada.
+ * @returns {string} A string escapada.
  */
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
+  if (typeof str !== 'string') return str;
+  return str.replace(/&/g, '&')
+            .replace(/</g, '<')
+            .replace(/>/g, '>')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
 }
+
 
 /* =====================================================
    BOOTSTRAP DO APLICATIVO
 ===================================================== */
 window.addEventListener('DOMContentLoaded', function() {
-  console.log('DOMContentLoaded: Iniciando aplicativo.');
-
-  // 1. Inicialização do Firebase
+  console.log('DOMContentLoaded - Iniciando App.');
   try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.database();
-    fbAuth = firebase.auth();
+    // 1. Inicializa Firebase App e serviços
+    firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebaseApp.database();
     console.log('Firebase inicializado.');
-  } catch (e) {
-    console.error('Erro ao inicializar Firebase:', e);
-    // Exibe uma mensagem de erro na UI se Firebase falhar
-    gel('auth-error').textContent = 'Erro ao conectar ao servidor. Tente novamente mais tarde.';
-    return;
-  }
 
-  // 2. Instanciação dos Managers e Engines (aqui, no app.js, uma única vez)
-  currentAuthManager = new AuthManager(fbAuth, db);
-  historyManager = new HistoryManager(db);
-  engine = new LudoEngine();
-  ai = new LudoAI();
-  console.log('Managers e Engines instanciados.');
+    // 2. Instancia os Managers e Engines
+    currentAuthManager = new AuthManager();
+    currentAuthManager.initialize(firebaseApp); // Passa firebaseApp para o AuthManager
+    historyManager = new HistoryManager(db);   // Passa a instância do DB para o HistoryManager
+    engine = new LudoEngine();
+    ai = new LudoAI();
+    console.log('Managers e Engines instanciados.');
 
-  // 3. Inicialização dos componentes da UI
-  initAuthUI();
-  initLobbyUI(); // Inicializa botões e event listeners do Lobby
-  initGameUI();  // Inicializa botões e event listeners do Game
-  initLudoHistoryLiveUI(); // Inicializa botões para Ludo History/Live
+    // 3. Inicializa event listeners da UI
+    initAuthUI();
+    initLobbyUI();
+    initGameUI();
+    initLudoHistoryLiveUI(); // Histórico e Live Games do Ludo
 
-  // 4. Constrói o tabuleiro Ludo (DOM) uma única vez
-  buildBoardDOM();
-  console.log('Tabuleiro Ludo DOM construído.');
+    // Não há initReplayUI no Ludo, pois não temos replay de xadrez mais.
 
-  // 5. Listener de estado de autenticação do Firebase
-  currentAuthManager.onAuthStateChanged(user => {
-    // console.log('Auth state changed:', user ? user.uid : 'No user'); // Debugging de auth state
-    updateHeaderUI(user); // Atualiza o header com info do usuário
-    if (user) {
-      if (user.isAnonymous) {
-        myId = user.uid; // ID real para o visitante
+    // 4. Constrói o DOM do tabuleiro Ludo uma única vez
+    console.log('Construindo DOM do tabuleiro Ludo...');
+    buildBoardDOM();
+
+    // 5. Observa mudanças de estado de autenticação para navegar entre telas
+    currentAuthManager.onUserChanged(user => {
+      console.log('AuthManager - onUserChanged:', user ? user.uid : 'Nenhum usuário');
+      updateHeaderUI(user); // Atualiza o cabeçalho sempre que o user muda
+
+      myId = user ? user.uid : 'guest_' + Math.random().toString(36).slice(2, 8);
+
+      if (user) {
+        // Se já estou em alguma sala, não mudo para o lobby imediatamente.
+        // A lógica de startMultiplayerGame ou spectateGame deve gerenciar isso.
+        // caso contrário, vai para o lobby.
+        if (!gameActive && !isSpectator) {
+          showScreen('lobby');
+          gel('app-header').classList.remove('hidden'); // Mostra o header se logado
+        }
       } else {
-        myId = user.uid;
+        // Se deslogou, ou não há usuário, sempre vai para a tela de autenticação
+        // E esconde o header
+        showScreen('auth');
+        gel('app-header').classList.add('hidden');
+        goLobby(); // Garante reset do estado do jogo ao deslogar
       }
-      showScreen('lobby');
-      gel('app-header').classList.remove('hidden'); // Exibe o header após login
-    } else {
-      gel('app-header').classList.add('hidden'); // Esconde o header na tela de login
-      showScreen('auth'); // Exibe a tela de autenticação
-    }
-  });
+    });
 
-  // 6. Configura handlers iniciais para o lobby (seleção de players/AI)
-  // Define o estado inicial dos seletores do modo de jogo
-  gel('panel-multiplayer').classList.add('hidden'); // Esconde o painel multiplayer
-  gel('panel-ai').classList.remove('hidden');    // Mostra o painel AI por padrão
-  gel('btn-mode-ai').classList.add('active');    // Ativa o botão Ludo VS AI
-
-  // Inicializa os seletores de quantidade de AI/jogadores humanos
-  // Botões de contagem de jogadores humanos (2, 3, 4)
-  document.querySelectorAll('#lobby-player-count .btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-          selectedHumanPlayersCount = parseInt(btn.dataset.count);
-          document.querySelectorAll('#lobby-player-count .btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          console.log(`Players humanos selecionados: ${selectedHumanPlayersCount}`);
-      });
-  });
-  // Selecione 2 como padrão
-  gel('btn-player-count-2').click();
-
-
-  // Botões de dificuldade/quantidade de IA (Memória do usuário: 1 a 3 computadores)
-  document.querySelectorAll('#lobby-ai-count .btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-          selectedAiCount = parseInt(btn.dataset.count);
-          document.querySelectorAll('#lobby-ai-count .btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          console.log(`IAs selecionadas: ${selectedAiCount}`);
-      });
-  });
-  // Selecione 1 como padrão
-  gel('btn-ai-count-1').click();
-
-
-  // Força atualização da UI do header em caso de recarga (para visitante)
-  updateHeaderUI(currentAuthManager.user);
-
-  console.log('App inicializado e listeners configurados.');
+  } catch (e) {
+    console.error('Erro crítico na inicialização do App:', e);
+    alert('Erro crítico ao iniciar o aplicativo: ' + e.message + '. Verifique o console para mais detalhes.');
+  }
 });
 
 /* =====================================================
-   HEADER UI - Controles e Informações do Usuário
+   AUTENTICAÇÃO (UI e Lógica)
 ===================================================== */
+
+// Helper para display de erros de autenticação
+function showAuthError(msg) {
+  const e = gel('auth-error');
+  if (e) e.textContent = msg;
+}
+function clearAuthError() {
+  const e = gel('auth-error');
+  if (e) e.textContent = '';
+}
+
+// Mapeamento de códigos de erro de autenticação para mensagens amigáveis
+function authErrorMsg(code) {
+  const msgs = {
+    'auth/user-not-found': 'Usuário não encontrado.',
+    'auth/wrong-password': 'Senha incorreta.',
+    'auth/email-already-in-use': 'E-mail já cadastrado.',
+    'auth/invalid-email': 'E-mail inválido.',
+    'auth/weak-password': 'Senha muito fraca (mínimo 6 caracteres).',
+    'auth/operation-not-allowed': 'Autenticação com e-mail/senha não habilitada. Contate o administrador.',
+    'auth/network-request-failed': 'Erro de rede. Verifique sua conexão.',
+    'auth/popup-closed-by-user': 'Login cancelado pelo usuário.',
+    'auth/too-many-requests': 'Muitas tentativas de login. Tente novamente mais tarde.',
+  };
+  return msgs[code] || `Erro ao autenticar: ${code}`;
+}
+
+/**
+ * Inicializa os event listeners para a UI de autenticação.
+ */
+function initAuthUI() {
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      gel('tab-login').classList.toggle('hidden', target !== 'login');
+      gel('tab-register').classList.toggle('hidden', target !== 'register');
+      clearAuthError();
+    });
+  });
+
+  el('btn-login-email', 'click', async () => {
+    const email = gel('login-email').value.trim();
+    const pass = gel('login-password').value;
+    if (!email || !pass) { showAuthError('Preencha e-mail e senha.'); return; }
+    try { await currentAuthManager.loginWithEmail(email, pass); }
+    catch (e) { showAuthError(authErrorMsg(e.code)); }
+  });
+
+  el('login-password', 'keydown', e => {
+    if (e.key === 'Enter') {
+      gel('btn-login-email').click();
+    }
+  });
+
+  el('btn-login-google', 'click', async () => {
+    try { await currentAuthManager.loginWithGoogle(); }
+    catch (e) { showAuthError(authErrorMsg(e.code)); }
+  });
+
+  el('btn-register', 'click', async () => {
+    const name = gel('reg-name').value.trim();
+    const email = gel('reg-email').value.trim();
+    const pass = gel('reg-password').value;
+    if (!name) { showAuthError('Informe seu nome.'); return; }
+    if (!email) { showAuthError('Informe seu e-mail.'); return; }
+    if (pass.length < 6) { showAuthError('Senha mínima de 6 caracteres.'); return; }
+    try { await currentAuthManager.registerWithEmail(name, email, pass); }
+    catch (e) { showAuthError(authErrorMsg(e.code)); }
+  });
+
+  el('btn-guest', 'click', async () => {
+    try { await currentAuthManager.loginAnonymously(); }
+    catch (e) { showAuthError(authErrorMsg(e.code)); }
+  });
+}
+
+/**
+ * Atualiza os elementos da UI do cabeçalho com informações do usuário.
+ * @param {object} user Objeto do usuário do Firebase.
+ */
 function updateHeaderUI(user) {
   const headerUsername = gel('header-username');
   const headerPhoto = gel('header-photo');
   const headerInitials = gel('header-initials');
+  const appHeader = gel('app-header');
 
   if (user) {
-    const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Visitante');
+    const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Jogador');
     const photoURL = user.photoURL;
 
     if (headerUsername) headerUsername.textContent = name;
 
-    if (photoURL && headerPhoto && headerInitials) {
-      headerPhoto.src = photoURL;
-      headerPhoto.classList.remove('hidden');
-      headerInitials.classList.add('hidden');
-    } else if (headerInitials) {
-      headerInitials.classList.remove('hidden');
-      headerInitials.textContent = name.split(' ').map(w => w[0] ? w[0].toUpperCase() : '').join('').substring(0, 2) || '?';
-      headerPhoto.classList.add('hidden');
+    if (headerPhoto && headerInitials) {
+      if (photoURL) {
+        headerPhoto.src = photoURL;
+        headerPhoto.classList.remove('hidden');
+        headerInitials.classList.add('hidden');
+      } else {
+        headerPhoto.classList.add('hidden');
+        headerInitials.classList.remove('hidden');
+        headerInitials.textContent = name.split(' ').map(w => w[0] ? w[0].toUpperCase() : '').join('').substring(0, 2) || '?';
+      }
     }
+    appHeader.classList.remove('hidden'); // Mostra o header se houver usuário
   } else {
     // Usuário deslogado
-    if (headerUsername) headerUsername.textContent = 'Visitante';
+    if (headerUsername) headerUsername.textContent = 'Visitante'; // Ou texto padrão
     if (headerPhoto) headerPhoto.classList.add('hidden');
     if (headerInitials) {
       headerInitials.classList.remove('hidden');
       headerInitials.textContent = '?';
     }
+    appHeader.classList.add('hidden'); // Esconde o header se não houver usuário
   }
 }
 
+
 /* =====================================================
-   FUNÇÕES GERAIS DE NAVEGAÇÃO E UI
+   NAVEGAÇÃO E TELAS (UI)
 ===================================================== */
+
 /**
- * Exibe uma tela específica e esconde todas as outras.
- * @param {string} name O ID da seção da tela (ex: 'auth', 'lobby', 'game').
+ * Exibe a tela especificada e oculta todas as outras.
+ * @param {string} name O ID da tela (ex: 'auth', 'lobby', 'game').
  */
 function showScreen(name) {
-  console.log(`Exibindo tela: ${name}`);
-  document.querySelectorAll('.screen').forEach(s => {
-    // console.log(`Escondendo tela: ${s.id}`); // Debugging
-    s.classList.remove('active');
-  });
-  const targetScreen = gel(`screen-${name}`);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); // Oculta todas
+  const targetScreen = gel('screen-' + name);
   if (targetScreen) {
-    targetScreen.classList.add('active');
-    // console.log(`Tela 'screen-${name}' ativada.`); // Debugging
+    targetScreen.classList.add('active'); // Exibe a tela alvo
+    // console.log(`Exibindo tela: ${name}`); // Debugging
   } else {
     console.error(`Tela com ID 'screen-${name}' não encontrada.`);
   }
@@ -240,155 +297,73 @@ function showScreen(name) {
  * @param {string} id O ID do modal.
  */
 function showModal(id) {
-  const modal = gel(id);
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-  }
+  const e = gel(id);
+  if (e) e.classList.remove('hidden');
 }
 
 /**
- * Esconde um modal.
+ * Oculta um modal.
  * @param {string} id O ID do modal.
  */
 function hideModal(id) {
-  const modal = gel(id);
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
+  const e = gel(id);
+  if (e) e.classList.add('hidden');
 }
 
 /**
- * Redireciona para a tela de Lobby e limpa o estado do jogo e erros.
+ * Volta para a tela principal (lobby) e reseta o estado do jogo.
  */
 function goLobby() {
-  console.log('Navegando para o Lobby.');
-  gameActive = false; aiThinking = false; isSpectator = false;
-  if (roomRef) { roomRef.off(); roomRef = null; } // Desliga listener de sala
-  if (specRef) { specRef.off(); specRef = null; } // Desliga listener de espectador
-  engine.reset(); // Reseta o estado do motor do jogo Ludo
+  console.log('Navegando para o Lobby, resetando estado do jogo.');
+  // Reseta todas as variáveis de estado do jogo
+  gameActive = false;
+  aiThinking = false;
+  isSpectator = false;
+  myColor = null;
+  roomCode = null;
 
-  // Limpa campos de input de sala/espectador
+  // Desativa listeners do Firebase
+  if (roomRef) { roomRef.off(); roomRef = null; }
+  if (specRef) { specRef.off(); specRef = null; }
+
+  engine.reset(); // Reseta o motor do jogo Ludo
+
+  // Limpa inputs e feedback no lobby
   const inputRoom = gel('input-room');
   const inputSpectate = gel('input-spectate');
   if (inputRoom) inputRoom.value = '';
   if (inputSpectate) inputSpectate.value = '';
+  clearLobbyError();
 
-  clearLobbyError(); // Limpa quaisquer mensagens de erro no lobby
   showScreen('lobby');
 }
 
-/**
- * Exibe uma mensagem de erro na tela de autenticação.
- * @param {string} msg A mensagem de erro.
- */
-function showAuthError(msg) {
-  const errorEl = gel('auth-error');
-  if (errorEl) errorEl.textContent = msg;
-}
-
-/**
- * Limpa a mensagem de erro na tela de autenticação.
- */
-function clearAuthError() {
-  const errorEl = gel('auth-error');
-  if (errorEl) errorEl.textContent = '';
-}
-
-/**
- * Exibe uma mensagem de erro na tela de lobby.
- * @param {string} msg A mensagem de erro.
- */
+// Mostra/Limpa erros no lobby
 function showLobbyError(msg) {
-  const errorEl = gel('lobby-error');
-  if (errorEl) errorEl.textContent = msg;
+  const e = gel('lobby-error');
+  if (e) e.textContent = msg;
 }
-
-/**
- * Limpa a mensagem de erro na tela de lobby.
- */
 function clearLobbyError() {
-  const errorEl = gel('lobby-error');
-  if (errorEl) errorEl.textContent = '';
+  const e = gel('lobby-error');
+  if (e) e.textContent = '';
 }
+
 
 /* =====================================================
-   AUTENTICAÇÃO / REGISTRO
+   LOBBY (UI e Lógica)
 ===================================================== */
-/**
- * Inicializa os event listeners para a UI de autenticação.
- */
-function initAuthUI() {
-  // Tabs Login/Registrar
-  document.querySelectorAll('.auth-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const targetPanel = tab.dataset.tab;
-      gel('tab-login').classList.toggle('hidden', targetPanel !== 'login');
-      gel('tab-register').classList.toggle('hidden', targetPanel !== 'register');
-      clearAuthError();
-    });
-  });
-
-  el('btn-login-email',     'click',   loginWithEmail);
-  el('login-password',      'keydown', e => { if (e.key === 'Enter') loginWithEmail(); });
-  el('btn-login-google',    'click',   loginWithGoogle);
-  el('btn-register',        'click',   registerWithEmail);
-  // el('btn-register-google', 'click',   loginWithGoogle); // Se necessário, reativar
-  el('btn-guest',           'click',   loginAsGuest);
-  el('btn-logout',          'click',   () => currentAuthManager.signOut()); // Botão de logout no header
-}
 
 /**
- * Realiza login com email e senha.
- */
-async function loginWithEmail() {
-  const email = gel('login-email').value.trim();
-  const pass = gel('login-password').value;
-  if (!email || !pass) { showAuthError('Preencha e-mail e senha.'); return; }
-  await currentAuthManager.signInWithEmail(email, pass, showAuthError);
-}
-
-/**
- * Realiza login com Google.
- */
-async function loginWithGoogle() {
-  await currentAuthManager.signInWithGoogle(showAuthError);
-}
-
-/**
- * Realiza o registro com email e senha.
- */
-async function registerWithEmail() {
-  const name = gel('reg-name').value.trim();
-  const email = gel('reg-email').value.trim();
-  const pass = gel('reg-password').value;
-  if (!name) { showAuthError('Informe seu nome.'); return; }
-  if (!email) { showAuthError('Informe seu e-mail.'); return; }
-  if (pass.length < 6) { showAuthError('Senha mínima de 6 caracteres.'); return; }
-  await currentAuthManager.registerWithEmail(name, email, pass, showAuthError);
-}
-
-/**
- * Realiza login como visitante (anônimo).
- */
-async function loginAsGuest() {
-  await currentAuthManager.signInAnonymously(showAuthError);
-}
-
-/* =====================================================
-   LOBBY UI & SELEÇÃO DE MODO DE JOGO
-===================================================== */
-/**
- * Inicializa os event listeners para a UI do Lobby.
+ * Inicializa os event listeners para a UI do lobby.
  */
 function initLobbyUI() {
-  el('btn-history-ludo',    'click', openHistoryScreen);
+  el('btn-logout', 'click', () => currentAuthManager.signOut());
+
+  // Navegação para Histórico/Ao Vivo
+  el('btn-history-ludo', 'click', openHistoryScreen);
   el('btn-live-games-ludo', 'click', openLiveGamesScreen);
 
-  // Seletores de Modo de Jogo (VS AI / Multiplayer)
+  // Seleção de Modo de Jogo (AI vs Multiplayer)
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -402,10 +377,10 @@ function initLobbyUI() {
 
   // Multiplayer: Criação e Entrada de Sala
   el('btn-create-room', 'click', createGame);
-  el('btn-join-room',   'click', joinGame);
-  el('input-room',      'keydown', e => { if (e.key === 'Enter') joinGame(); });
+  el('btn-join-room', 'click', joinGame);
+  el('input-room', 'keydown', e => { if (e.key === 'Enter') joinGame(); });
 
-  // Multiplayer: Seleção de # de Jogadores Humanos
+  // Multiplayer: Seleção de # de Jogadores Humanos para Criar Sala
   document.querySelectorAll('#lobby-player-count .btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedHumanPlayersCount = parseInt(btn.dataset.count);
@@ -418,6 +393,7 @@ function initLobbyUI() {
   document.querySelectorAll('#lobby-ai-count .btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedAiCount = parseInt(btn.dataset.count);
+      // Remove 'active' de todos os botões e adiciona ao clicado
       document.querySelectorAll('#lobby-ai-count .btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
@@ -425,9 +401,10 @@ function initLobbyUI() {
 
   el('btn-start-ai-game', 'click', startAIGame); // Botão para iniciar jogo contra IA
 
-  // Waiting Room
+  // Waiting Room Botoes
   el('btn-cancel-game', 'click', cancelGame);
   el('btn-copy-room-code', 'click', copyRoomCode);
+  el('btn-start-multiplayer-game-host', 'click', startGameAsHost); // Botão que só o host vê
 
   // Espectador
   el('btn-spectate-room', 'click', spectateGame);
@@ -438,7 +415,10 @@ function initLobbyUI() {
  * Cria uma nova sala multiplayer.
  */
 async function createGame() {
-  if (!currentAuthManager.uid) { showLobbyError('Faça login para criar um jogo.'); return; }
+  if (!currentAuthManager.uid || currentAuthManager.isAnonymous) {
+      showLobbyError('Faça login ou entre como visitante para criar um jogo. Visitantes também podem criar.');
+      return;
+  }
 
   const btn = gel('btn-create-room');
   if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
@@ -449,42 +429,51 @@ async function createGame() {
     roomRef = db.ref('rooms/' + roomCode);
 
     const currentPlayer = currentAuthManager.user;
-    const myName = currentPlayer.displayName || 'Jogador';
+    const myName = currentPlayer.displayName || (currentPlayer.email ? currentPlayer.email.split('@')[0] : 'Jogador');
     const myPhotoURL = currentAuthManager.photoURL;
 
+    // Inicializa o mapa de jogadores com o host
     const playerColors = {};
-    const availableLudoColors = [...window.LUDO_CONSTANTS.LUDO_COLORS]; // Cópia para manipular
+    const availableLudoColors = [...window.LUDO_CONSTANTS.LUDO_COLORS];
 
-    // Adiciona o jogador host (sempre 'red' ou primeira cor disponível)
-    myColor = availableLudoColors.shift(); // Remove a primeira cor para o host
+    // O host sempre pega a primeira cor disponível (vermelho por padrão)
+    myColor = availableLudoColors.shift();
     playerColors[myColor] = { id: myId, name: myName, isAI: false, photoURL: myPhotoURL || null };
 
-    // Preenche os slots restantes com jogadores aguardando ou IAs (se pré-selecionado)
-    let aiPlayersAdded = 0;
-    while (Object.keys(playerColors).length < selectedHumanPlayersCount) {
+    // Adiciona slots vazios para o número de jogadores humanos esperado pelo host
+    for (let i = 1; i < selectedHumanPlayersCount; i++) {
         const nextColor = availableLudoColors.shift();
-        if(!nextColor) break; // Todas as cores usadas
+        if(!nextColor) break;
         playerColors[nextColor] = {
-            id: null, // Slot vago para humanos
+            id: null,
             name: `Aguardando ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[nextColor]}`,
             isAI: false,
             photoURL: null
         };
     }
-    // Adiciona IAs se ainda houver slots e a contagem de humanos for < 4
-    if (Object.keys(playerColors).length < 4) {
-        while (availableLudoColors.length > 0 && aiPlayersAdded < (4 - selectedHumanPlayersCount)) {
-            const nextColor = availableLudoColors.shift();
-            playerColors[nextColor] = {
-                id: `ai_${nextColor}_${Date.now()}`,
-                name: `Computador ${aiPlayersAdded + 1}`,
-                isAI: true,
-                photoURL: null
-            };
-            aiPlayersAdded++;
-        }
+    // Preenche o restante dos slots até 4 (se houver) com IAs.
+    // Isso garante que a sala tenha sempre 4 slots, mesmo que nem todos sejam humanos.
+    let aiPlayersAdded = 0;
+    while (Object.keys(playerColors).length < 4 && availableLudoColors.length > 0) {
+        const nextColor = availableLudoColors.shift();
+        playerColors[nextColor] = {
+            id: `ai_${nextColor}_${Date.now()}_${aiPlayersAdded}`,
+            name: `Computador ${aiPlayersAdded + 1}`,
+            isAI: true,
+            photoURL: null
+        };
+        aiPlayersAdded++;
     }
 
+
+    engine.reset(); // Assegura que o engine está limpo antes de serializar o estado inicial
+    engine.setupGame(Object.values(playerColors).map(p => ({
+        id: p.id,
+        name: p.name,
+        isAI: p.isAI,
+        color: p.color,
+        photoURL: p.photoURL
+    }))); // Configura um engine local para gerar o estado inicial
 
     const initialGameState = engine.serialize(); // Estado inicial do tabuleiro Ludo
 
@@ -493,8 +482,7 @@ async function createGame() {
       gameType: 'ludo',
       hostUid: myId,
       createdAt: firebase.database.ServerValue.TIMESTAMP,
-      playerCount: selectedHumanPlayersCount, // O numero REAL de humanos que o host espera
-      guestAllowed: true, // Ou false, dependendo da sua regra
+      expectedHumanPlayers: selectedHumanPlayersCount, // Número REAL de humanos que o host espera
       status: 'waiting', // waiting, playing, finished, resigned, abandoned
       playerColors: playerColors, // Mapa de cores para dados dos jogadores e IAs
       state: initialGameState,
@@ -503,15 +491,15 @@ async function createGame() {
 
     gel('display-room-code').textContent = roomCode;
     showScreen('waiting');
-    updateWaitingRoomPlayers(playerColors);
+    updateWaitingRoomPlayers(playerColors); // Exibe os jogadores iniciais na sala de espera
 
-    // Quando o host muda a sala, os jogadores são atualizados
+    // Inicia a observação da sala para o host
     roomRef.on('value', snap => {
       const roomData = snap.val();
-      if (!roomData) { // Sala foi removida
+      if (!roomData) { // Sala foi removida (ex: host clicou em Cancelar)
         roomRef.off();
-        goLobby();
-        showLobbyError('A sala foi encerrada pelo host.');
+        goLobby(); // Volta para o lobby
+        showLobbyError('A sala foi encerrada.');
         return;
       }
 
@@ -525,7 +513,7 @@ async function createGame() {
 
   } catch (e) {
     showLobbyError('Erro ao criar sala: ' + e.message);
-    console.error(e);
+    console.error('Erro ao criar sala:', e);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Criar Nova Sala'; }
   }
@@ -535,7 +523,10 @@ async function createGame() {
  * Entra em uma sala multiplayer existente.
  */
 async function joinGame() {
-  if (!currentAuthManager.uid) { showLobbyError('Faça login para entrar em um jogo.'); return; }
+  if (!currentAuthManager.uid || currentAuthManager.isAnonymous) {
+      showLobbyError('Faça login ou entre como visitante para entrar em um jogo. Visitantes também podem entrar.');
+      return;
+  }
 
   const input = gel('input-room');
   const code = input ? input.value.trim().toUpperCase() : '';
@@ -557,15 +548,15 @@ async function joinGame() {
     }
 
     const currentPlayer = currentAuthManager.user;
-    const myName = currentPlayer.displayName || currentPlayer.email || 'Jogador';
+    const myName = currentPlayer.displayName || (currentPlayer.email ? currentPlayer.email.split('@')[0] : 'Jogador');
     const myPhotoURL = currentAuthManager.photoURL;
 
-    // Encontre um slot de cor vazio ou onde eu já esteja
+    // Encontra um slot de cor vazio ou onde eu já esteja
     let foundSlot = false;
     for (const color of window.LUDO_CONSTANTS.LUDO_COLORS) {
         if (!data.playerColors[color] || data.playerColors[color].id === null) {
             myColor = color;
-            await roomRef.child('playerColors').child(color).set({
+            await roomRef.child('playerColors').child(color).set({ // Ocupa o slot
                 id: myId,
                 name: myName,
                 isAI: false,
@@ -573,7 +564,7 @@ async function joinGame() {
             });
             foundSlot = true;
             break;
-        } else if (data.playerColors[color].id === myId) { // Já estou na sala
+        } else if (data.playerColors[color].id === myId) { // Já estou na sala, reentrando
             myColor = color;
             foundSlot = true;
             break;
@@ -586,12 +577,10 @@ async function joinGame() {
         return;
     }
 
-    // Atualiza a UI para a tela de espera
     gel('display-room-code').textContent = code;
     showScreen('waiting');
-    updateWaitingRoomPlayers(data.playerColors); // Renderiza jogadores iniciais
+    updateWaitingRoomPlayers(data.playerColors);
 
-    // Monitora a sala para mudanças de estado (status, adição de jogadores)
     roomRef.on('value', snap => {
       const roomData = snap.val();
       if (!roomData) {
@@ -610,7 +599,7 @@ async function joinGame() {
 
   } catch (e) {
     showLobbyError('Erro ao entrar na sala: ' + e.message);
-    console.error(e);
+    console.error('Erro ao entrar na sala:', e);
     roomRef = null;
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Entrar na Sala'; }
@@ -630,16 +619,17 @@ async function cancelGame() {
     if (data && data.hostUid === currentAuthManager.uid) {
       // Se sou o host, remove a sala completamente
       await roomRef.remove();
+      console.log('Sala removida pelo host.');
     } else if (myColor) {
       // Se não sou o host, mas sou um jogador, libero meu slot de cor
       const emptyPlayerSlot = { id: null, name: `Aguardando ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[myColor]}`, isAI: false, photoURL: null };
       await roomRef.child('playerColors').child(myColor).set(emptyPlayerSlot);
+      console.log(`Jogador ${myColor} saiu da sala.`);
     }
   } catch (e) {
     console.error('Erro ao cancelar/sair da sala:', e);
   } finally {
-    roomRef.off(); // Desliga o listener
-    roomRef = null;
+    if (roomRef) { roomRef.off(); roomRef = null; } // Desliga o listener
     goLobby(); // Volta para o lobby
   }
 }
@@ -661,14 +651,17 @@ function copyRoomCode() {
 }
 
 /**
- * Atualiza a lista de jogadores na tela de espera.
- * @param {object} playerColors Objeto contendo os jogadores por cor.
+ * Atualiza a lista de jogadores na tela de espera e o botão de "Iniciar Partida".
+ * @param {object} playerColors Objeto contendo os dados dos jogadores por cor.
  */
-function updateWaitingRoomPlayers(playerColors) {
+async function updateWaitingRoomPlayers(playerColors) {
     const listEl = gel('waiting-players-list');
     const currentPlayersEl = gel('waiting-current-players');
     const maxPlayersEl = gel('waiting-max-players');
-    if (!listEl || !currentPlayersEl || !maxPlayersEl) return;
+    const btnStartGameHost = gel('btn-start-multiplayer-game-host');
+
+
+    if (!listEl || !currentPlayersEl || !maxPlayersEl || !btnStartGameHost) return;
 
     listEl.innerHTML = '';
     let currentHumanCount = 0;
@@ -681,10 +674,10 @@ function updateWaitingRoomPlayers(playerColors) {
         row.className = 'waiting-player-row';
         const nameDisplay = player.id
             ? (player.isAI ? `Computador (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[player.color]})` : escapeHtml(player.name))
-            : `Aguardando...`;
+            : `Aguardando ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[player.color]}`;
         row.innerHTML = `
             <div class="player-color-dot" style="background-color: var(--ludo-${player.color});"></div>
-            <span>${nameDisplay} ${player.id === myId ? '(Você)' : ''}</span>
+            <span>${nameDisplay} ${player.id === currentAuthManager.uid ? '(Você)' : ''}</span>
         `;
         listEl.appendChild(row);
         if (player.id !== null && !player.isAI) {
@@ -692,26 +685,33 @@ function updateWaitingRoomPlayers(playerColors) {
         }
     }
 
-    currentPlayersEl.textContent = currentHumanCount;
-    // Usa o playerCount do host para saber quantos humanos ele esperava
-    roomRef.once('value').then(snap => {
-        const data = snap.val();
-        if (data) maxPlayersEl.textContent = data.playerCount;
-    });
+    const snap = await roomRef.once('value');
+    const data = snap.val();
 
-    const btnStartGameHost = gel('btn-start-multiplayer-game-host');
-    if (btnStartGameHost) {
-        if (currentAuthManager.uid === snap.val().hostUid && currentHumanCount >= 2) { // Exemplo: host pode iniciar com min 2 humanos
+    let expectedHumans = data ? data.expectedHumanPlayers : 2; // Padrão 2 se não conseguir ler
+
+    currentPlayersEl.textContent = currentHumanCount;
+    maxPlayersEl.textContent = expectedHumans;
+
+
+    // Apenas o host pode ver e clicar no botão "Iniciar Partida"
+    if (data && data.hostUid === currentAuthManager.uid) {
+        // Habilita o botão se houver pelo menos 2 jogadores humanos
+        if (currentHumanCount >= 2 && currentHumanCount <= expectedHumans) {
             btnStartGameHost.classList.remove('hidden');
+            btnStartGameHost.disabled = false;
         } else {
-            btnStartGameHost.classList.add('hidden');
+            btnStartGameHost.classList.remove('hidden'); // Ainda visível para o host, mas desabilitado
+            btnStartGameHost.disabled = true;
         }
+    } else {
+        btnStartGameHost.classList.add('hidden'); // Outros jogadores não veem o botão
     }
 }
 
 /**
- * Inicia o jogo multiplayer A PARTIR DA TELA DE ESPERA (apenas host).
- * Esta função é chamada pelo host para "forçar" o início do jogo assim que tiver jogadores suficientes.
+ * Função para o host iniciar a partida a partir da tela de espera.
+ * Ocorre quando o host clica em "Iniciar Partida".
  */
 async function startGameAsHost() {
   if (!roomRef) return;
@@ -723,72 +723,69 @@ async function startGameAsHost() {
     return;
   }
 
-  // Verificar se há jogadores suficientes (mínimo 2, por exemplo)
   const currentHumanPlayers = Object.values(roomData.playerColors).filter(p => p && !p.isAI && p.id !== null).length;
   if (currentHumanPlayers < 2) {
     alert('É necessário ter pelo menos 2 jogadores humanos para iniciar a partida.');
     return;
   }
 
-  // Inicia o jogo
+  // Define o status da sala como "playing"
   await roomRef.update({ status: 'playing' });
 }
+
 
 /* =====================================================
    LÓGICA DE PARTIDA MULTIPLAYER (APÓS INICIADA)
 ===================================================== */
 /**
  * Inicia o jogo multiplayer quando o status da sala muda para 'playing'.
+ * Esta função é chamada tanto para o host quanto para os jogadores que entram.
  * @param {object} roomData Os dados da sala do Firebase.
  */
 async function startMultiplayerGame(roomData) {
   console.log('Iniciando jogo multiplayer:', roomData.roomCode);
-  roomCode = roomData.roomCode; // Garante que o roomCode global esteja setado
+  roomCode = roomData.roomCode;
   gameMode = 'multiplayer';
   gameActive = true;
   isSpectator = false;
+  aiThinking = false; // Garante que a IA não está pensando
 
-  // Deserializa o estado inicial do jogo
+  // Deserializa o estado inicial do jogo, que contém a ordem de players e pawns.
   engine.deserialize(roomData.state);
 
   // Define myColor se ainda não estiver definido (para spectator ou se join foi o first trigger)
   if (!myColor) {
       for (const color of window.LUDO_CONSTANTS.LUDO_COLORS) {
-          if (roomData.playerColors[color] && roomData.playerColors[color].id === myId) {
+          if (roomData.playerColors[color] && roomData.playerColors[color].id === currentAuthManager.uid) {
               myColor = color;
               break;
           }
       }
   }
 
-  // Preenche o array de players do engine com os dados da sala
-  const enginePlayers = [];
-  for (const color of window.LUDO_CONSTANTS.LUDO_COLORS) {
-      if (roomData.playerColors[color]) {
-          enginePlayers.push({
-              id: roomData.playerColors[color].id,
-              name: roomData.playerColors[color].name,
-              color: color,
-              isAI: roomData.playerColors[color].isAI || false,
-              photoURL: roomData.playerColors[color].photoURL || null
-          });
-      }
-  }
-  engine.players = enginePlayers; // Atualiza o engine com a lista completa de jogadores do firebase
+  // Garante que a lista de players do engine está alinhada com o que veio do Firebase
+  engine.players = Object.values(roomData.playerColors).map(p => ({
+    id: p.id,
+    name: p.name,
+    isAI: p.isAI,
+    color: p.color,
+    photoURL: p.photoURL,
+    pawns: p.pawns || Array(window.LUDO_CONSTANTS.PIECES_PER_PLAYER).fill(0).map(() => ({ pos: -1, homeStep: -1, finished: false })),
+    score: p.score || 0
+  }));
 
   // Esconder/mostrar botões de controle
   gel('btn-resign').classList.remove('hidden');
-  gel('btn-start-ai-game').classList.add('hidden'); // Esconde botão de iniciar AI
-  gel('btn-new-game').classList.add('hidden');
-  gel('btn-back-lobby').classList.add('hidden');
-  gel('spectator-bar').classList.add('hidden');
+  gel('btn-start-ai-game').classList.add('hidden');
+  gel('btn-new-game').classList.add('hidden'); // Botão "Novo Jogo" só aparece no game over
+  gel('btn-back-lobby').classList.add('hidden'); // Esconder voltar lobby do spectator
+  gel('spectator-bar').classList.add('hidden'); // Esconder barra de spectator
 
   showScreen('game');
   renderGame(); // Renderiza o estado inicial do jogo
 
-  // Inicia o listener para atualizações de estado do jogo via Firebase.
   if (roomRef) {
-    roomRef.on('value', snap => {
+    roomRef.on('value', async snap => { // Usar async lambda
       const liveRoomData = snap.val();
       if (!liveRoomData) {
         console.log('Sala foi removida, jogo multiplayer encerrado.');
@@ -798,56 +795,76 @@ async function startMultiplayerGame(roomData) {
         return;
       }
 
-      // Se o estado do Firebase é mais recente que o local, atualiza o local.
-      // Isso deve sincronizar o tabuleiro do multiplayer
-      // if (JSON.stringify(engine.serialize()) !== JSON.stringify(liveRoomData.state)) {
-        engine.deserialize(liveRoomData.state); // Atualiza o engine local
-        renderGame(); // Redesenha a UI
-      // }
-
+      // Deserializa o estado do engine do Firebase para manter sincronia
+      engine.deserialize(liveRoomData.state);
+      // Atualiza a lista de players do engine caso entrem/saiam IAs ou jogadores
+      engine.players = Object.values(liveRoomData.playerColors).map(p => ({
+        id: p.id,
+        name: p.name,
+        isAI: p.isAI,
+        color: p.color,
+        photoURL: p.photoURL,
+        pawns: p.pawns || Array(window.LUDO_CONSTANTS.PIECES_PER_PLAYER).fill(0).map(() => ({ pos: -1, homeStep: -1, finished: false })),
+        score: p.score || 0
+      }));
+      renderGame(); // Redesenha a UI com o novo estado
 
       // === Lógica de Fim de Jogo (Resign/Finished/Abandoned) ===
       if (!gameActive) return; // Se o jogo já acabou localmente, não processa mais fim de jogo do Firebase.
 
-      if (liveRoomData.status === 'resigned' || liveRoomData.status === 'finished' || liveRoomData.status === 'abandoned') {
+      if (['resigned', 'finished', 'abandoned'].includes(liveRoomData.status)) {
         gameActive = false; // Finaliza o jogo localmente
 
         let title = 'Partida Encerrada';
         let message = 'O jogo terminou.';
         let result = 'draw'; // Padrão
-        let winnerPlayer = null;
+        let winnerPlayerName = 'Ninguém';
+        let winnerUID = null;
 
         if (liveRoomData.status === 'resigned') {
-            winnerPlayer = engine.players.find(p => p.color === liveRoomData.winner);
+            winnerUID = liveRoomData.winner; // Quem VENCEU após a resignação
+            const resignedPlayerName = liveRoomData.resignedPlayerName || 'Um jogador';
+            winnerPlayerName = engine.players.find(p => p.id === winnerUID)?.name || 'Oponente';
             title = 'Partida Finalizada';
-            message = `${winnerPlayer ? winnerPlayer.name : 'Um jogador'} desistiu.`;
-            result = (liveRoomData.winner && liveRoomData.playerColors[liveRoomData.winner].id === myId) ? 'win' : 'loss';
+            message = `${resignedPlayerName} desistiu. ${winnerPlayerName} venceu!`;
+            result = (winnerUID === currentAuthManager.uid) ? 'win' : 'loss'; // Meu resultado
         } else if (liveRoomData.status === 'finished' && liveRoomData.winner) {
-            winnerPlayer = engine.players.find(p => p.id === liveRoomData.winner);
+            winnerUID = liveRoomData.winner; // Quem VENCEU o jogo
+            winnerPlayerName = engine.players.find(p => p.id === winnerUID)?.name || 'Alguém';
             title = 'Fim de Jogo! 🏁';
-            message = `${winnerPlayer ? winnerPlayer.name : 'Um jogador'} venceu!`;
-            result = (liveRoomData.winner === myId) ? 'win' : 'loss';
+            message = `${winnerPlayerName} venceu!`;
+            result = (winnerUID === currentAuthManager.uid) ? 'win' : 'loss';
         } else if (liveRoomData.status === 'abandoned') {
+            const abandonedPlayerName = liveRoomData.abandonedPlayerName || 'Um jogador';
             title = 'Partida Abandonada';
-            message = `Um jogador (${liveRoomData.abandonedPlayerName || 'desconhecido'}) abandonou a partida.`;
+            message = `${abandonedPlayerName} abandonou a partida.`;
             // Lógica para atribuir vitória a quem ficou na partida
-            const remainingPlayers = engine.players.filter(p => p.id !== liveRoomData.abandonedPlayerId && !p.isAI);
-            if(remainingPlayers.some(p => p.id === myId)) {
+            const remainingPlayers = engine.players.filter(p => !p.isAI && p.id !== liveRoomData.abandonedPlayerId);
+            if(remainingPlayers.some(p => p.id === currentAuthManager.uid)) {
                 result = 'win';
+                winnerPlayerName = currentAuthManager.displayName;
             } else {
-                result = 'loss'; // Se eu também saí ou sou IA envolvida no abandono
+                result = 'draw'; // Se não sou o vencedor, pode ser draw ou loss
             }
         }
 
-        historyManager.saveGame({
+        // Salva o resultado no histórico pessoal
+        await historyManager.saveGame({
             gameType: 'ludo',
             uid: currentAuthManager.uid,
             isAnonymous: currentAuthManager.isAnonymous,
             mode: gameMode,
-            players: engine.players.map(p => ({ id: p.id, name: p.name, color: p.color, isAI: p.isAI, photoURL: p.photoURL })),
+            players: engine.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                color: p.color,
+                isAI: p.isAI,
+                isMe: p.id === currentAuthManager.uid,
+                photoURL: p.photoURL
+            })),
             myColor: myColor,
             result: result,
-            endedAt: Date.now(),
+            endedAt: Date.Now(),
         });
         historyManager.removeLudoLiveGame(roomCode); // Remove da lista de jogos ao vivo
 
@@ -856,20 +873,31 @@ async function startMultiplayerGame(roomData) {
         return;
       }
 
-      // Se é a vez de uma IA no multiplayer
+      // Se é a vez de uma IA no multiplayer, e eu sou o host
       const activePlayer = engine.activePlayer;
-      if (engine.status === 'playing' && activePlayer.isAI && activePlayer.id !== myId && !aiThinking) {
-        // Assume que o host é responsável por rodar os turnos das IAs
-        if (roomData.hostUid === myId) {
-            setTimeout(doAITurn, 1500); // Host executa o turno da IA
-        }
+      if (roomData.hostUid === currentAuthManager.uid // Eu sou o host
+          && activePlayer.isAI
+          && engine.status === 'playing'
+          && !aiThinking)
+      {
+          console.log(`Host (${currentAuthManager.displayName}) executando turno da IA (${activePlayer.name}).`);
+          setTimeout(doAITurn, 1500); // Host executa o turno da IA
       }
-    });
-  }
+    }); // Fim do roomRef.on('value')
+  } // Fim do if (roomRef)
 
-  // Se for o host da sala, também salva o jogo na lista de jogos ao vivo
+  // Se for o host da sala, também salva/atualiza o jogo na lista de jogos ao vivo
   if (roomData.hostUid === currentAuthManager.uid) {
-    historyManager.saveLudoLiveGame(roomData.roomCode, roomData);
+    historyManager.saveLudoLiveGame(roomData.roomCode, {
+        gameType: 'ludo',
+        roomCode: roomData.roomCode,
+        hostUid: roomData.hostUid,
+        createdAt: roomData.createdAt,
+        playerColors: roomData.playerColors,
+        state: roomData.state,
+        status: roomData.status,
+        players: Object.values(roomData.playerColors).filter(p => p && p.id) // Apenas jogadores válidos
+    });
   }
 }
 
@@ -883,7 +911,7 @@ async function startMultiplayerGame(roomData) {
 function initGameUI() {
   el('btn-roll', 'click', onRollDiceClick);
   el('btn-resign', 'click', resign);
-  // botões do modal de gameover
+  // Botões do modal de gameover
   el('btn-gameover-new', 'click', () => { hideModal('modal-gameover'); if (gameMode === 'ai') startAIGame(); else goLobby(); });
   el('btn-gameover-history', 'click', () => { hideModal('modal-gameover'); openHistoryScreen(); });
   el('btn-gameover-lobby', 'click', () => { hideModal('modal-gameover'); goLobby(); });
@@ -902,7 +930,6 @@ function initGameUI() {
 function isMyTurn() {
   return !isSpectator && gameActive && engine.activePlayer && engine.activePlayer.id === currentAuthManager.uid;
 }
-window.isMyTurn = isMyTurn; // Tornar global para acesso de outras funções, se necessário
 
 /**
  * Handler para o clique no botão "Rolar Dado".
@@ -930,16 +957,16 @@ async function onRollDiceClick() {
         });
       showGameOver('Parabéns!', `${currentAuthManager.displayName} venceu a partida!`);
       if (gameMode === 'multiplayer' && roomRef) {
-          await roomRef.update({status: 'finished', winner: myId});
+          await roomRef.update({status: 'finished', winner: currentAuthManager.uid, state: engine.serialize()});
           historyManager.removeLudoLiveGame(roomCode);
-          roomRef.off();
-          roomRef = null;
+          if (roomRef) { roomRef.off(); roomRef = null; }
       }
       return;
   }
 
   // Verifica se há movimentos válidos. Se não, passa o turno automaticamente.
-  if (engine.phase === 'move' && engine.getValidMoves().length === 0) {
+  const validMoves = engine.getValidMoves();
+  if (engine.phase === 'move' && validMoves.length === 0) {
     engine.logEvent(myColor, `Sem movimentos válidos para ${currentAuthManager.displayName}. Passando a vez.`);
     await new Promise(resolve => setTimeout(resolve, 800)); // Pequeno delay antes de passar o turno
     engine.nextTurn();
@@ -948,7 +975,8 @@ async function onRollDiceClick() {
     if (gameMode === 'multiplayer' && roomRef) {
       await roomRef.update({
         state: engine.serialize(),
-        log: engine.log
+        log: engine.log,
+        activePlayerIndex: engine.activePlayerIndex
       });
     }
     // Se o próximo jogador for IA, ativa IA
@@ -960,7 +988,9 @@ async function onRollDiceClick() {
       // O jogador terá que escolher a peça.
       await roomRef.update({
         state: engine.serialize(),
-        log: engine.log
+        log: engine.log,
+        activePlayerIndex: engine.activePlayerIndex
+
       });
   }
 }
@@ -990,24 +1020,25 @@ async function doMovePawn(pawnIdx) {
             players: engine.players.map(p => ({ id: p.id, name: p.name, color: p.color, isAI: p.isAI, photoURL: p.photoURL })),
             myColor: myColor,
             result: result,
-            endedAt: Date.now(),
+            endedAt: Date.Now(),
         });
         showGameOver('Partida Encerrada!', `${engine.players.find(p => p.id === engine.winner)?.name || 'Alguém'} levou todas as peças para casa!`);
 
         if (gameMode === 'multiplayer' && roomRef) {
-            await roomRef.update({status: 'finished', winner: engine.winner});
+            await roomRef.update({status: 'finished', winner: engine.winner, state: engine.serialize()});
             historyManager.removeLudoLiveGame(roomCode);
-            roomRef.off();
-            roomRef = null;
+            if (roomRef) { roomRef.off(); roomRef = null; }
         }
         return;
     }
 
     // Se o jogo continua, atualiza o Firebase após o movimento
+    // e atualiza quem é o jogador ativo para o próximo turno.
     if (gameMode === 'multiplayer' && roomRef) {
       await roomRef.update({
         state: engine.serialize(),
-        log: engine.log
+        log: engine.log,
+        activePlayerIndex: engine.activePlayerIndex
       }).catch(e => console.error('Erro ao atualizar estado do jogo multiplayer após movimento:', e));
     }
 
@@ -1029,7 +1060,8 @@ function startAIGame() {
   gameMode = 'ai';
   gameActive = true;
   isSpectator = false;
-  myColor = window.LUDO_CONSTANTS.LUDO_COLORS[0]; // Jogador sempre vermelho no modo AI
+  aiThinking = false;
+  myColor = window.LUDO_CONSTANTS.LUDO_COLORS[0]; // Jogador humano (eu) é sempre vermelho no modo AI
 
   engine.reset(); // Reseta o motor do jogo Ludo
 
@@ -1043,10 +1075,8 @@ function startAIGame() {
     photoURL: currentAuthManager.photoURL
   });
 
-  // Adiciona as IAs
-  // Pega as cores restantes SEM incluir a cor do jogador humano
+  // Adiciona as IAs preenchendo as cores restantes
   const aiColorsPool = window.LUDO_CONSTANTS.LUDO_COLORS.filter(color => color !== myColor);
-
   for (let i = 0; i < selectedAiCount; i++) {
     const aiColor = aiColorsPool[i];
     if (aiColor) { // Garante que há uma cor disponível
@@ -1060,20 +1090,21 @@ function startAIGame() {
     }
   }
 
-  engine.setupGame(playerConfigs); // Configura o jogo com os jogadores (Humano + AI)
+  engine.setupGame(playerConfigs); // Configura o jogo com todos os jogadores (Humano + AI)
 
-  // Atualiza UI dos botões
+  // Atualiza UI de botões de controle de jogo
   gel('btn-resign').classList.remove('hidden');
+  gel('btn-roll').classList.remove('hidden');
   gel('btn-start-ai-game').classList.add('hidden'); // Esconde botão de iniciar AI
-  gel('btn-new-game').classList.add('hidden');
   gel('btn-back-lobby').classList.add('hidden');
   gel('spectator-bar').classList.add('hidden');
 
   showScreen('game');
   renderGame();
 
+  // Se o primeiro jogador ativo for uma IA, agenda seu turno
   if (engine.activePlayer.isAI) {
-    setTimeout(doAITurn, 1500); // Se o primeiro turno for da IA, agenda o movimento
+    setTimeout(doAITurn, 1500);
   }
 }
 
@@ -1096,13 +1127,13 @@ async function doAITurn() {
 
   // Simula o rolar do dado pela IA
   gel('dice-display').textContent = '🎲';
-  await new Promise(resolve => setTimeout(resolve, 800)); // Atraso para rolar
+  await new Promise(resolve => setTimeout(resolve, 800)); // Atraso para simular "rolando"
 
   engine.rollDice();
   renderGame(); // Atualiza o dado e o tabuleiro com o roll da IA
 
   if (engine.status === 'finished') {
-    // A IA rolou e venceu
+    // A IA rolou e venceu, então o humano perdeu
     await historyManager.saveGame({
         gameType: 'ludo',
         uid: currentAuthManager.uid,
@@ -1119,7 +1150,7 @@ async function doAITurn() {
     return;
   }
 
-  // Se a IA rolou e não há movimentos válidos (raro), ela passa o turno
+  // Se a IA rolou e não há movimentos válidos, ela passa o turno automaticamente.
   if (engine.phase === 'move' && engine.getValidMoves().length === 0) {
       engine.logEvent(engine.activePlayer.color, `${engine.activePlayer.name} (IA) não tem movimentos válidos. Passando a vez.`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Pequeno delay antes de passar
@@ -1136,18 +1167,18 @@ async function doAITurn() {
       aiThinking = true;
       renderStatusBar(); // Ainda "pensando" para decidir o movimento
 
-      // Atraso para o movimento da IA com base na "dificuldade" (simulada)
-      const delay = 1000 + (Math.random() * 500); // 1 a 1.5 segundos
+      // Atraso para o movimento da IA
+      const delay = 800 + (Math.random() * 700); // 0.8 a 1.5 segundos
       await new Promise(resolve => setTimeout(resolve, delay));
 
       const pawnIndexToMove = ai.getBestMove(engine); // AI escolhe a melhor peça para mover
 
       if (pawnIndexToMove !== null) {
           engine.doMovePawn(pawnIndexToMove);
-          aiThinking = false;
+          aiThinking = false; // IA terminou de pensar e mover
           renderGame();
 
-          if (engine.status === 'finished') {
+          if (engine.status === 'finished') { // A IA moveu e venceu o jogo
             await historyManager.saveGame({
                 gameType: 'ludo',
                 uid: currentAuthManager.uid,
@@ -1168,16 +1199,17 @@ async function doAITurn() {
               setTimeout(doAITurn, 1500);
           }
       } else {
-        // Fallback: se a IA não encontrar movimento (não deveria acontecer aqui com getValidMoves)
-        console.warn('AI não encontrou um movimento válido após rolar o dado.');
+        console.warn('AI não encontrou um movimento válido. Passando a vez.');
         engine.nextTurn();
         aiThinking = false;
         renderGame();
         if (engine.activePlayer.isAI) setTimeout(doAITurn, 1500);
       }
   }
-  // Após a IA ter terminado seu turno ou passado, reabilita o botão de resign
-  gel('btn-resign').disabled = false;
+  // Após a IA ter terminado seu turno ou passado, reabilita o botão de resign (se for a vez do humano)
+  if (isMyTurn()) { // Reabilita apenas se o próximo turno é do humano
+      gel('btn-resign').disabled = false;
+  }
 }
 
 /* =====================================================
@@ -1199,33 +1231,29 @@ async function spectateGame() {
     if (!data) { showLobbyError('Sala não encontrada.'); return; }
     if (data.gameType !== 'ludo') { showLobbyError('Esta sala é para outro jogo.'); return; }
     if (data.status === 'waiting') { showLobbyError('Partida ainda não começou.'); return; }
-    if (data.status === 'finished' || data.status === 'resigned' || data.status === 'abandoned') {
+    if (['finished', 'resigned', 'abandoned'].includes(data.status)) {
       showLobbyError('Partida já encerrou.'); return;
     }
 
     isSpectator = true; roomCode = code; myColor = null; // Spectator não tem "myColor"
     engine.deserialize(data.state); // Carrega o estado atual do jogo
 
-    // Preenche o array de players do engine com os dados da sala para exibir no sidebar
-    const enginePlayers = [];
-    for (const color of window.LUDO_CONSTANTS.LUDO_COLORS) {
-        if (data.playerColors[color]) {
-            enginePlayers.push({
-                id: data.playerColors[color].id,
-                name: data.playerColors[color].name,
-                color: color,
-                isAI: data.playerColors[color].isAI || false,
-                photoURL: data.playerColors[color].photoURL || null
-            });
-        }
-    }
-    engine.players = enginePlayers;
+    // Garante que a lista de players do engine está alinhada com o que veio do Firebase
+    engine.players = Object.values(data.playerColors).map(p => ({
+        id: p.id,
+        name: p.name,
+        isAI: p.isAI,
+        color: p.color,
+        photoURL: p.photoURL,
+        pawns: p.pawns || Array(window.LUDO_CONSTANTS.PIECES_PER_PLAYER).fill(0).map(() => ({ pos: -1, homeStep: -1, finished: false })),
+        score: p.score || 0
+    }));
 
     showScreen('game');
     renderGame();
     gel('btn-resign').classList.add('hidden');
+    gel('btn-roll').classList.add('hidden');
     gel('btn-start-ai-game').classList.add('hidden');
-    gel('btn-new-game').classList.add('hidden');
     gel('btn-back-lobby').classList.remove('hidden'); // Botão pra voltar pro lobby
     gel('spectator-bar').classList.remove('hidden'); // Mostra barra de espectador
 
@@ -1239,25 +1267,20 @@ async function spectateGame() {
       }
       engine.deserialize(d.state);
       // Atualiza a lista de players no engine caso entre/saia alguém
-      const updatedEnginePlayers = [];
-      for (const color of window.LUDO_CONSTANTS.LUDO_COLORS) {
-          if (d.playerColors[color]) {
-              updatedEnginePlayers.push({
-                  id: d.playerColors[color].id,
-                  name: d.playerColors[color].name,
-                  color: color,
-                  isAI: d.playerColors[color].isAI || false,
-                  photoURL: d.playerColors[color].photoURL || null
-              });
-          }
-      }
-      engine.players = updatedEnginePlayers; // Atualiza aqui também
+      engine.players = Object.values(d.playerColors).map(p => ({
+          id: p.id,
+          name: p.name,
+          isAI: p.isAI,
+          color: p.color,
+          photoURL: p.photoURL,
+          pawns: p.pawns || Array(window.LUDO_CONSTANTS.PIECES_PER_PLAYER).fill(0).map(() => ({ pos: -1, homeStep: -1, finished: false })),
+          score: p.score || 0
+      }));
       renderGame();
 
-      if (d.status === 'finished' || d.status === 'resigned' || d.status === 'abandoned') {
+      if (['finished', 'resigned', 'abandoned'].includes(d.status)) {
         gel('spectator-bar').textContent = '👁 Partida encerrada.';
-        specRef.off();
-        // Não mostra modal de game over para espectador, apenas atualiza a barra.
+        specRef.off(); // Desliga o listener, pois o jogo terminou
       } else {
         gel('spectator-bar').textContent = `👁 Assistindo — Vez de ${engine.activePlayer.name} (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[engine.activePlayer.color]})`;
       }
@@ -1265,12 +1288,12 @@ async function spectateGame() {
 
   } catch (e) {
     showLobbyError('Erro ao conectar como espectador: ' + e.message);
-    console.error(e);
+    console.error('Erro ao conectar como espectador:', e);
   }
 }
 
 /* =====================================================
-   GAME OVER / RESIGN
+   GAME OVER / RESIGN LOGIC
 ===================================================== */
 /**
  * Desiste da partida atual.
@@ -1282,53 +1305,34 @@ async function resign() {
   gameActive = false;
   aiThinking = false;
 
-  let winnerId = null;
-  let winnerColor = null;
+  let result = 'loss'; // Quem desiste sempre perde
+  let winnerUID = null;
+  let winnerPlayerName = 'Ninguém';
 
-  if (gameMode === 'multiplayer') {
-      // Se multiplayer, o vencedor é o próximo jogador humano ou o host se houver IAs.
-      const remainingHumanPlayers = engine.players.filter(p => p.id !== myId && !p.isAI);
-      if (remainingHumanPlayers.length > 0) {
-          winnerId = remainingHumanPlayers[0].id;
-          winnerColor = remainingHumanPlayers[0].color;
-      } else if (roomRef && (await roomRef.child('hostUid').once('value')).val() === myId) {
-          // Se sou o host e não há outros humanos, eu (o host) que estou desistindo. Quem ganha? Ninguém ou a IA.
-          // Para simplificar, vou atribuir a vitória para a próxima IA se tiver, senão o jogo fica sem vencedor.
-          const firstAi = engine.players.find(p => p.isAI);
-          if (firstAi) {
-              winnerId = firstAi.id;
-              winnerColor = firstAi.color;
-          }
-      } else {
-          // Se não sou host e não há outros humanos, quem ganhou? O host ou a IA.
-          const hostUid = (await roomRef.child('hostUid').once('value')).val();
-          if (hostUid) {
-              const hostPlayer = engine.players.find(p => p.id === hostUid);
-              if (hostPlayer) {
-                  winnerId = hostPlayer.id;
-                  winnerColor = hostPlayer.color;
-              }
-          }
+  if (gameMode === 'multiplayer' && roomRef) {
+      // No multiplayer, o vencedor é a próxima pessoa humana se houver, ou o host decide.
+      // Simplificando: vamos atribuir a vitória a qualquer outro jogador humano ativo na sala.
+      const otherPlayers = engine.players.filter(p => p.id !== currentAuthManager.uid && !p.isAI);
+      if (otherPlayers.length > 0) {
+          winnerUID = otherPlayers[0].id; // O primeiro "outro" jogador ganha por padrão
+          winnerPlayerName = otherPlayers[0].name;
       }
 
-      if (roomRef) {
-          await roomRef.update({
-              status: 'resigned',
-              winner: winnerColor, // Salva a cor do vencedor
-              abandonedPlayerId: myId,
-              abandonedPlayerName: currentAuthManager.displayName,
-              state: engine.serialize() // Salva o estado final
-          }).catch(e => console.error('Erro ao atualizar sala para resignação:', e));
-          roomRef.off();
-          roomRef = null;
-          historyManager.removeLudoLiveGame(roomCode);
-      }
+      await roomRef.update({
+          status: 'resigned',
+          winner: winnerUID, // ID de quem 'ganha' a partida devido à resignação
+          resignedPlayerId: currentAuthManager.uid, // Quem desistiu
+          resignedPlayerName: currentAuthManager.displayName,
+          state: engine.serialize() // Salva o estado final
+      }).catch(e => console.error('Erro ao atualizar sala para resignação:', e));
+      historyManager.removeLudoLiveGame(roomCode);
+      if (roomRef) { roomRef.off(); roomRef = null; }
   } else { // Modo AI
       // A IA "vence" quando o humano desiste
       const aiPlayer = engine.players.find(p => p.isAI);
       if (aiPlayer) {
-          winnerId = aiPlayer.id;
-          winnerColor = aiPlayer.color;
+          winnerUID = aiPlayer.id;
+          winnerPlayerName = aiPlayer.name;
       }
   }
 
@@ -1343,16 +1347,15 @@ async function resign() {
         name: p.name,
         color: p.color,
         isAI: p.isAI,
-        isMe: p.id === myId,
+        isMe: p.id === currentAuthManager.uid,
         photoURL: p.photoURL
     })),
     myColor: myColor,
-    result: 'loss', // Desistência é sempre perda para quem desiste
+    result: result, // Desistência é sempre perda para quem desiste
     endedAt: Date.now(),
   });
 
-  const winnerNameDisplay = winnerId ? (engine.players.find(p => p.id === winnerId)?.name || 'Oponente') : 'Ninguém';
-  showGameOver('Você Desistiu! 🏳️', `A vitória foi para ${winnerNameDisplay}.`);
+  showGameOver('Você Desistiu! 🏳️', `A vitória foi para ${winnerPlayerName}.`);
 }
 
 /**
@@ -1368,7 +1371,7 @@ function showGameOver(title, msg) {
   if (titleEl) titleEl.textContent = title;
   if (msgEl) msgEl.textContent = msg;
   if (iconEl) {
-    iconEl.textContent = title.includes('Venceu') || title.includes('Vitória') ? '🏆'
+    iconEl.textContent = title.includes('Venceu') || title.includes('Parabéns') ? '🏆'
       : title.includes('Desistiu') || title.includes('Perdeu') ? '❌' : '🎲'; // Ícone padrão
   }
   showModal('modal-gameover');
@@ -1380,28 +1383,30 @@ function showGameOver(title, msg) {
 
 /**
  * Constrói a estrutura DOM do tabuleiro Ludo.
- * Chamado uma vez ao iniciar o aplicativo (DOMContentLoaded).
+ * Chamado uma única vez ao iniciar o aplicativo (DOMContentLoaded).
+ * Isso evita a recriação desnecessária de elementos HTML a cada render.
  */
 function buildBoardDOM() {
   const boardEl = gel('ludo-board');
   if (!boardEl) {
-    console.error('Elemento #ludo-board não encontrado.');
+    console.error('Elemento #ludo-board não encontrado. Não é possível construir o tabuleiro.');
     return;
   }
-  boardEl.innerHTML = '';
-  BOARD_CELLS_DOM = [];
+  boardEl.innerHTML = ''; // Limpa qualquer conteúdo preexistente
+  BOARD_CELLS_DOM = []; // Reseta o array de referências DOM
 
   for (let r = 0; r < window.LUDO_CONSTANTS.BOARD_SIZE; r++) {
-    BOARD_CELLS_DOM[r] = [];
+    BOARD_CELLS_DOM[r] = []; // Inicializa a linha
     for (let c = 0; c < window.LUDO_CONSTANTS.BOARD_SIZE; c++) {
       const cell = document.createElement('div');
       cell.className = 'ludo-cell';
       cell.dataset.row = r;
       cell.dataset.col = c;
+      cell.id = `cell-${r}-${c}`; // Adiciona um ID único para cada célula
 
-      // Adiciona classes de zona e segurança
+      // Adiciona classes de zona (cor, base, home path, etc.)
       const zone = getCellZone(r, c);
-      if (zone) cell.classList.add('zone-' + zone);
+      if (zone) cell.classList.add(zone);
 
       // Adiciona classe 'safe' para casas seguras no PATH_COORDS
       const pathIdx = window.LUDO_CONSTANTS.PATH_COORDS.findIndex(coord => coord[0] === r && coord[1] === c);
@@ -1410,50 +1415,45 @@ function buildBoardDOM() {
       }
 
       boardEl.appendChild(cell);
-      BOARD_CELLS_DOM[r][c] = cell; // Guarda referência ao elemento DOM
+      BOARD_CELLS_DOM[r][c] = cell; // Guarda referência ao elemento DOM para acesso rápido
     }
   }
-  console.log('DOM do tabuleiro Ludo construído. Referências guardadas.');
+  console.log('DOM do tabuleiro Ludo construído e referências guardadas.');
 }
 
 /**
  * Identifica a "zona" (cor ou neutra) de uma célula específica do tabuleiro 15x15.
- * Usado para aplicar estilos de fundo.
+ * Usado para aplicar estilos de fundo via CSS.
  * @param {number} r Linha da célula.
  * @param {number} c Coluna da célula.
- * @returns {string} A zona (red, blue, green, yellow, center, neutral)
+ * @returns {string} A zona (red-base, blue-homepath, neutral-path, center-final, etc.)
  */
 function getCellZone(r, c) {
-  // Bases (6x6)
+  // Bases (Blocos 6x6)
   if (r >=0 && r <=5 && c >=0 && c <=5) return 'red-base';
   if (r >=0 && r <=5 && c >=9 && c <=14) return 'blue-base';
   if (r >=9 && r <=14 && c >=9 && c <=14) return 'green-base';
   if (r >=9 && r <=14 && c >=0 && c <=5) return 'yellow-base';
 
-  // Centros de área de partida (círculos grandes dentro das bases)
-  // Ajuste estes ranges conforme o seu design de CSS
-  if ((r === 2 || r === 3) && (c === 2 || c === 3) && getCellZone(r,c).includes('red')) return 'red-start-inner';
-  if ((r === 2 || r === 3) && (c === 11 || c === 12) && getCellZone(r,c).includes('blue')) return 'blue-start-inner';
-  if ((r === 11 || r === 12) && (c === 11 || c === 12) && getCellZone(r,c).includes('green')) return 'green-start-inner';
-  if ((r === 11 || r === 12) && (c === 2 || c === 3) && getCellZone(r,c).includes('yellow')) return 'yellow-start-inner';
-
-
-  // Corredores finais (Home Paths, 6 casas de cada cor) com a cor correspondente
+  // Home Paths (corredores finais 6x1)
   if (r === 7 && c >= 1 && c <= 6) return 'red-homepath';
   if (c === 7 && r >= 1 && r <= 6) return 'blue-homepath';
   if (r === 7 && c >= 8 && c <= 13) return 'green-homepath';
   if (c === 7 && r >= 8 && r <= 13) return 'yellow-homepath';
 
-  // Centro final (casa final do jogo)
+  // Casa Central (7,7)
   if (r === 7 && c === 7) return 'center-final';
 
-  // Casas de entrada para o tabuleiro principal
+  // Casas de Entrada (onde as peças vermelhas, azuis, etc. entram no caminho principal)
   if (window.LUDO_CONSTANTS.ENTRY_POS.red[0] === r && window.LUDO_CONSTANTS.ENTRY_POS.red[1] === c) return 'red-entry';
   if (window.LUDO_CONSTANTS.ENTRY_POS.blue[0] === r && window.LUDO_CONSTANTS.ENTRY_POS.blue[1] === c) return 'blue-entry';
   if (window.LUDO_CONSTANTS.ENTRY_POS.green[0] === r && window.LUDO_CONSTANTS.ENTRY_POS.green[1] === c) return 'green-entry';
   if (window.LUDO_CONSTANTS.ENTRY_POS.yellow[0] === r && window.LUDO_CONSTANTS.ENTRY_POS.yellow[1] === c) return 'yellow-entry';
 
-  return 'neutral-path'; // Trilhas neutras do caminho principal
+  // Células do caminho principal (o resto)
+  // Não precisamos de verificação explícita aqui, se não se encaixa nas anteriores
+  // e está no grid, é parte do caminho principal neutro ou entre eles.
+  return 'neutral-path';
 }
 
 /**
@@ -1493,16 +1493,17 @@ function renderBoard() {
           coords[0] < 0 || coords[0] >= window.LUDO_CONSTANTS.BOARD_SIZE ||
           coords[1] < 0 || coords[1] >= window.LUDO_CONSTANTS.BOARD_SIZE ||
           !BOARD_CELLS_DOM[coords[0]] || !BOARD_CELLS_DOM[coords[0]][coords[1]]) {
-        console.warn(`Coordenadas inválidas para peão ${player.color}-${pawnIdx}: [${coords}]`);
+        console.warn(`Coordenadas inválidas ou célula DOM não encontrada para peão ${player.color}-${pawnIdx} em [${coords}].`);
         return;
       }
 
       const cellElement = BOARD_CELLS_DOM[coords[0]][coords[1]];
       if (!cellElement) {
-        console.warn(`Elemento da célula DOM não encontrado para [${coords[0]}, ${coords[1]}]`);
+        console.warn(`Elemento da célula DOM não encontrado para [${coords[0]}, ${coords[1]}].`);
         return;
       }
 
+      // Cria e posiciona o elemento do peão
       const pawnEl = document.createElement('div');
       pawnEl.className = `pawn ${player.color}`;
       pawnEl.dataset.playerColor = player.color;
@@ -1531,7 +1532,7 @@ function renderPlayersList() {
   listEl.innerHTML = '';
 
   engine.players.forEach(player => {
-    const card = document.createElement('div');
+    const card = document.createElement('li'); // Mudado para <li> para lista semântica
     card.className = `player-card ${player.color}`;
     // Adiciona 'active-turn' se for o jogador atual
     if (engine.activePlayer && engine.activePlayer.id === player.id) {
@@ -1549,7 +1550,6 @@ function renderPlayersList() {
     if (playerPhotoURL) {
       avatarContent = `<img src="${playerPhotoURL}" alt="${player.name}" class="player-photo">`;
     } else {
-      // Usa iniciais ou símbolo padrão com a cor do jogador
       const initials = (player.name || '?')[0].toUpperCase();
       avatarContent = `<span class="player-initials" style="background-color: var(--ludo-${player.color}-dark);">${initials}</span>`;
     }
@@ -1560,7 +1560,7 @@ function renderPlayersList() {
       </div>
       <div class="player-info">
         <span class="player-name">${playerNameDisplay}</span>
-        <span class="player-score">${player.score} / ${window.LUDO_CONSTANTS.PIECES_PER_PLAYER}</span>
+        <span class="player-score">Peças em Casa: ${player.score} / ${window.LUDO_CONSTANTS.PIECES_PER_PLAYER}</span>
         <div class="ludo-score-indicator" data-color="${player.color}">
           <!-- Peões na base serão renderizados aqui como dots -->
         </div>
@@ -1571,14 +1571,17 @@ function renderPlayersList() {
     const scoreIndicator = card.querySelector('.ludo-score-indicator');
     if (scoreIndicator) {
       player.pawns.forEach(pawn => {
-        if (!pawn.finished) {
+        if (!pawn.finished) { // Só mostra dots para peças que não chegaram na casa central
           const dot = document.createElement('span');
           dot.className = 'pawn-on-base-dot';
-          // Se a peça está na base e o dado é 6, ela está "ready" para sair
+          // Peças na base ficam brancas; peças no board ficam coloridas; peças prontas para sair ficam com destaque amarelado
+          if (pawn.pos !== -1 || pawn.homeStep !== -1) {
+            dot.style.backgroundColor = `var(--ludo-${player.color})`; // Peça já saiu: colorida
+          }
+
+          // Se a peça está na base E é o turno do jogador E o dado é 6
           if (pawn.pos === -1 && engine.diceValue === 6 && isMyTurn() && player.id === currentAuthManager.uid) {
-            dot.classList.add('ready');
-          } else if (pawn.pos !== -1 || pawn.homeStep !== -1) {
-            dot.style.backgroundColor = `var(--ludo-${player.color})`; // Peça já saiu (no caminho principal ou corredor final)
+            dot.classList.add('ready'); // Destaque para peça pronta para sair
           }
           scoreIndicator.appendChild(dot);
         }
@@ -1616,7 +1619,7 @@ function renderStatusBar() {
   }
 
   if (engine.status === 'finished') {
-    bar.textContent = `Partida encerrada! Vencedor: ${activePlayer.name} (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[activePlayer.color]}) 🏆`;
+    bar.textContent = `Partida encerrada! Vencedor: ${engine.players.find(p => p.id === engine.winner)?.name || 'Alguém'} 🏆`;
     bar.classList.remove('your-turn');
     btnRoll.classList.add('hidden'); // Esconde o botão de rolar ao final do jogo
   } else if (isMyTurnNow) {
@@ -1696,6 +1699,7 @@ async function openHistoryScreen() {
   }
 
   try {
+    // Usa o HistoryManager para carregar o histórico de Ludo
     const games = await historyManager.loadLudoHistory(currentAuthManager.uid);
 
     if (!games || games.length === 0) {
@@ -1705,7 +1709,7 @@ async function openHistoryScreen() {
 
     const wins = games.filter(g => g.result === 'win').length;
     const losses = games.filter(g => g.result === 'loss' || g.result === 'resigned').length;
-    const draws = games.filter(g => g.result === 'draw').length; // Desenhos são possíveis se o jogo for declarado um empate.
+    const draws = games.filter(g => g.result === 'draw').length; // Considera empates, se a lógica Ludo permitir
 
     if (statsEl) statsEl.innerHTML =
       `<span class="stat stat-win">🏆 Vitórias: ${wins}</span> ` +
@@ -1714,7 +1718,7 @@ async function openHistoryScreen() {
 
     if (listEl) listEl.innerHTML = '';
 
-    // Ordena os jogos por data mais recente primeiro
+    // Ordena os jogos por data mais recente primeiro (presumindo que `endedAt` é um timestamp)
     games.sort((a,b) => b.endedAt - a.endedAt);
 
     games.forEach(game => {
@@ -1726,9 +1730,10 @@ async function openHistoryScreen() {
       const resClass = resClassMap[game.result] || '';
       const resText = resTextMap[game.result] || game.result;
 
-      // Obtém o nome dos oponentes
+      // Obtém os nomes dos oponentes de forma dinâmica
+      // Filtra o próprio jogador e as IAs para listar "oponentes humanos"
       let opponentDisplayNames = game.players
-        .filter(p => !p.isMe && !p.isAI && p.id !== null) // Filtra `isMe` que é o próprio jogador na partida
+        .filter(p => p.id !== currentAuthManager.uid && !p.isAI)
         .map(p => escapeHtml(p.name));
       let aiOpponentCount = game.players.filter(p => p.isAI).length;
 
@@ -1740,7 +1745,7 @@ async function openHistoryScreen() {
         const joiner = opponentDisplayNames.length > 0 ? ' + ' : 'vs ';
         opponentDisplay += `${joiner}${aiOpponentCount} IA(s)`;
       }
-      if (!opponentDisplay) { // Se não há oponentes explícitos (ex: só você no AI mode)
+      if (!opponentDisplay) { // Se não há oponentes humanos explicitamente (i.e., apenas IA ou jogo solo simples)
           opponentDisplay = 'Partida Solo/IA';
       }
 
@@ -1790,10 +1795,12 @@ async function openLiveGamesScreen() {
       const card = document.createElement('div');
       card.className = 'history-card';
 
-      let playerDisplayNames = game.players
+      // Constrói um resumo dos jogadores para exibição
+      // Filtra os IDs null (slots vazios), e apenas humanos (não IAs) para a lista de nomes
+      let playerDisplayNames = Object.values(game.playerColors || {})
         .filter(p => !p.isAI && p.id !== null)
         .map(p => escapeHtml(p.name));
-      let aiCount = game.players.filter(p => p.isAI).length;
+      let aiCount = Object.values(game.playerColors || {}).filter(p => p.isAI).length;
 
       let playerSummary = playerDisplayNames.join(', ');
       if (aiCount > 0) {
@@ -1815,16 +1822,17 @@ async function openLiveGamesScreen() {
         </div>
         <div class="history-card-center">
           <span class="history-mode">👥 Multiplayer</span>
-          <span class="history-moves">${game.players.length} slots</span>
+          <span class="history-moves">${Object.keys(game.playerColors || {}).length} slots</span>
         </div>
         <div class="history-card-right">
           <span class="history-date">${date}</span>
           <button class="btn btn-small btn-secondary">👁 Assistir</button>
         </div>
       `;
+      // Anexa o listener para o botão "Assistir"
       card.querySelector('button').addEventListener('click', () => {
-        gel('input-spectate').value = game.roomCode; // Usar roomCode para spectate
-        spectateGame();
+        gel('input-spectate').value = game.roomCode; // Preenche o input do lobby com o código
+        spectateGame(); // Chama a função de espectador
       });
       if (listEl) listEl.appendChild(card);
     });

@@ -1,134 +1,126 @@
-/* =====================================================
-   history.js - Gerencia o histórico de jogos e partidas ao vivo.
-   Define a classe HistoryManager. Carregado ANTES de app.js.
-===================================================== */
 class HistoryManager {
-  constructor() {
-    this.databaseInstance = null; // Será inicializado com a instância do Firebase Database
+  constructor(firebaseDB) {
+    this.db = firebaseDB;
+    if (!this.db) {
+        console.error("Firebase Database not provided to HistoryManager constructor.");
+    }
   }
 
   /**
-   * Inicializa o HistoryManager com a instância do Firebase Database.
-   * @param {object} db Firebase Database instance.
-   */
-  init(db) {
-    this.databaseInstance = db;
-  }
-
-  /**
-   * Salva o resultado de uma partida Ludo no histórico do usuário.
+   * Salva um registro de jogo no Firebase Realtime Database.
    * @param {object} gameData Dados do jogo a serem salvos.
-   * @returns {Promise<string|null>} A chave do jogo salvo ou null em caso de erro.
+   * @returns {Promise<string|null>} A chave do novo registro ou null em caso de erro.
    */
   async saveGame(gameData) {
-    if (!this.databaseInstance || !gameData.uid || gameData.isAnonymous) {
-      // console.warn('Não é possível salvar o jogo: Firebase não inicializado, UID ausente ou usuário anônimo.');
+    if (!this.db || !gameData || !gameData.uid || gameData.isAnonymous) {
+      console.warn("Não foi possível salvar o jogo: DB não conectado, dados incompletos ou usuário anônimo.");
       return null;
     }
 
-    const { gameType, mode, result, endedAt, players, myColor } = gameData;
-    const gameRecord = {
-      gameType: gameType || 'ludo',
+    const { gameType, uid, mode, players, myColor, result, endedAt } = gameData;
+    const opponentName = players
+        .filter(p => p.id !== uid && !p.isAI)
+        .map(p => p.name)
+        .join(', ') || 'Oponente IA/Outros';
+
+    const record = {
+      gameType: gameType, // 'ludo' ou 'chess'
+      uid: uid,
+      playerName: players.find(p => p.id === uid)?.name || 'Eu',
+      opponentName: opponentName,
+      myColor: myColor,
       mode: mode,
       result: result,
-      endedAt: endedAt || firebase.database.ServerValue.TIMESTAMP,
-      players: players, // Array de { id, name, color, isAI, photoURL, isMe }
+      players: players, // Salva todos os players para reconstituição
+      endedAt: endedAt
     };
 
     try {
-      const userGamesRef = this.databaseInstance.ref(`users/${gameData.uid}/games`);
-      const newGameRef = userGamesRef.push();
-      await newGameRef.set(gameRecord);
-      return newGameRef.key;
+      const ref = await this.db.ref(`users/${uid}/games/${gameType}`).push(record);
+      return ref.key;
     } catch (e) {
-      console.error('Erro ao salvar jogo no histórico:', e);
+      console.error(`Erro ao salvar jogo de ${gameType}:`, e);
       return null;
     }
   }
 
   /**
-   * Carrega o histórico de partidas Ludo para um dado usuário.
-   * @param {string} uid O UID do usuário.
-   * @returns {Promise<Array<object>>} Lista de partidas.
+   * Carrega o histórico de partidas de um tipo específico de jogo para um usuário.
+   * @param {string} uid UID do usuário.
+   * @param {string} gameType Tipo de jogo ('ludo' ou 'chess').
+   * @returns {Promise<Array>} Lista de objetos de jogo.
    */
-  async loadLudoHistory(uid) {
-    if (!this.databaseInstance || !uid) {
-      console.warn('Não é possível carregar o histórico: Firebase não inicializado ou UID ausente.');
+  async loadHistory(uid, gameType) {
+    if (!this.db || !uid) {
+      console.warn("Não foi possível carregar o histórico: DB não conectado ou UID ausente.");
       return [];
     }
-    try {
-      const snapshot = await this.databaseInstance.ref(`users/${uid}/games`)
-        .orderByChild('endedAt')
-        .limitToLast(50) // Limita aos últimos 50 jogos
-        .once('value');
 
-      const games = [];
-      snapshot.forEach(childSnapshot => {
-        const game = childSnapshot.val();
-        // Garante que é um jogo de Ludo (ou assume se gameType não estiver presente)
-        if (!game.gameType || game.gameType === 'ludo') {
-          games.push({ id: childSnapshot.key, ...game });
-        }
-      });
+    try {
+      const snap = await this.db.ref(`users/${uid}/games/${gameType}`)
+        .orderByChild('endedAt').limitToLast(50).once('value'); // Últimas 50 partidas
+      const raw = snap.val();
+
+      if (!raw) return [];
+
+      const games = Object.entries(raw)
+        .map(([key, value]) => ({ id: key, ...value }))
+        .sort((a, b) => b.endedAt - a.endedAt); // Ordena do mais recente para o mais antigo
+
       return games;
     } catch (e) {
-      console.error('Erro ao carregar histórico de Ludo:', e);
+      console.error(`Erro ao carregar histórico de ${gameType}:`, e);
       return [];
     }
   }
 
   /**
-   * Salva os dados de uma partida Ludo ao vivo.
-   * @param {string} roomCode O código da sala.
-   * @param {object} roomData Os dados da sala para salvar.
+   * Salva um jogo multiplayer ao vivo (apenas Ludo no momento).
+   * Isso permite que outros usuários assistam.
+   * @param {string} roomCode Código da sala.
+   * @param {object} roomData Dados da sala.
    */
   async saveLudoLiveGame(roomCode, roomData) {
-    if (!this.databaseInstance || !roomCode) return;
+    if (!this.db) return;
     try {
-      await this.databaseInstance.ref(`live_ludo_games/${roomCode}`).set(roomData);
+        await this.db.ref(`live_games/ludo/${roomCode}`).set(roomData);
     } catch (e) {
-      console.error('Erro ao salvar partida Ludo ao vivo:', e);
+        console.error("Erro ao salvar partida Ludo ao vivo:", e);
     }
   }
 
   /**
-   * Remove uma partida Ludo da lista de jogos ao vivo.
-   * @param {string} roomCode O código da sala.
+   * Remove um jogo multiplayer ao vivo.
+   * @param {string} roomCode Código da sala.
    */
   async removeLudoLiveGame(roomCode) {
-    if (!this.databaseInstance || !roomCode) return;
+    if (!this.db) return;
     try {
-      await this.databaseInstance.ref(`live_ludo_games/${roomCode}`).remove();
+        await this.db.ref(`live_games/ludo/${roomCode}`).remove();
     } catch (e) {
-      console.error('Erro ao remover partida Ludo ao vivo:', e);
+        console.error("Erro ao remover partida Ludo ao vivo:", e);
     }
   }
 
   /**
-   * Carrega a lista de partidas Ludo ao vivo.
-   * @returns {Promise<Array<object>>} Lista de partidas ao vivo.
+   * Carrega todas as partidas de Ludo ao vivo.
+   * @returns {Promise<Array>} Lista de partidas.
    */
   async loadLudoLiveGames() {
-    if (!this.databaseInstance) {
-      console.warn('Não é possível carregar partidas ao vivo: Firebase não inicializado.');
-      return [];
-    }
+    if (!this.db) return [];
     try {
-      const snapshot = await this.databaseInstance.ref('live_ludo_games')
-        .orderByChild('createdAt')
-        .once('value');
-
-      const liveGames = [];
-      snapshot.forEach(childSnapshot => {
-        const game = childSnapshot.val();
-        if (game.status === 'playing' || game.status === 'waiting') { // Apenas jogos ativos/esperando
-          liveGames.push({ id: childSnapshot.key, ...game });
-        }
-      });
-      return liveGames;
+        const snap = await this.db.ref('live_games/ludo').once('value');
+        const raw = snap.val();
+        if (!raw) return [];
+        return Object.entries(raw).map(([roomCode, data]) => ({ roomCode, ...data }));
     } catch (e) {
-      console.error('Erro ao carregar partidas Ludo ao vivo:', e);
-      return [];
+        console.error("Erro ao carregar partidas Ludo ao vivo:", e);
+        return [];
     }
+  }
+
+  // Adaptação para Ludo
+  async loadLudoHistory(uid) {
+      return this.loadHistory(uid, 'ludo');
   }
 }
