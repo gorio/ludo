@@ -16,18 +16,18 @@
   --text-muted:#8892a4; /* Cor do texto secundário/neutro */
 
   /* Cores específicas de Xadrez (mantidas, mas não diretamente usadas no Ludo) */
-  --light-sq: #f0d9b5;
-  --dark-sq:  #b58863;
-  --highlight: rgba(255,255,0,0.4);
-  --move-hint: rgba(0,0,0,0.22);
-  --selected:  rgba(20,85,30,0.55);
-  --check:     rgba(220,20,60,0.55);
+  --light-sq: #f0d9b5; /* Não usadas para o Ludo */
+  --dark-sq:  #b58863; /* Não usadas para o Ludo */
+  --highlight: rgba(255,255,0,0.4); 
+  --move-hint: rgba(0,0,0,0.22); 
+  --selected:  rgba(20,85,30,0.55); 
+  --check:     rgba(220,20,60,0.55); 
 
   --radius:    12px; /* Raio de borda padrão */
   --shadow:    0 8px 32px rgba(0,0,0,0.45); /* Sombra padrão */
 
   /* Tamanho base do tabuleiro de Xadrez (se ativo) */
-  --board-size-chess: min(62vw, 600px);
+  --board-size-chess: min(62vw, 600px); /* Mantido para contexto, mas não afeta Ludo */
 
   /* CORES LUDO (adaptadas ao tema Dark) */
   --ludo-red:     #e74c3c; /* Vermelho vibrante */
@@ -55,16 +55,6 @@ body {
   justify-content: flex-start; /* Alinha o conteúdo ao topo, deixando espaço para o header */
 }
 
-/* Wrapper para as telas para ocupar o restante da altura e centralizar */
-.content-wrapper {
-    flex-grow: 1; /* Ocupa todo o espaço vertical disponível não usado pelo header */
-    display: flex;
-    justify-content: center;
-    align-items: center; /* Centraliza as telas verticalmente */
-    width: 100%;
-}
-
-
 /* ===== GLOBAL UI ELEMENTS ===== */
 button, input[type="submit"] {
   cursor: pointer;
@@ -73,7 +63,7 @@ button, input[type="submit"] {
   outline: none;
 }
 
-/* ===== HEADER DO APP (NOVO, para ser fixo no topo) ===== */
+/* ===== HEADER DO APP ===== */
 .app-header {
   position: sticky; /* ou `fixed` se for para sempre ficar visível */
   top: 0;
@@ -93,7 +83,6 @@ button, input[type="submit"] {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: var(--text); /* Cor do texto do tema */
 }
 
 .header-user {
@@ -116,7 +105,6 @@ button, input[type="submit"] {
   width: 36px;
   height: 36px;
   flex-shrink: 0;
-  cursor: pointer; /* Para indicar que é clicável (logout/profile) */
 }
 
 .header-photo {
@@ -129,9 +117,7 @@ button, input[type="submit"] {
   transition: border-color 0.2s;
 }
 
-.header-photo:hover {
-  border-color: var(--accent);
-}
+.header-photo:hover { border-color: var(--accent); }
 
 .header-initials {
   width: 36px;
@@ -148,25 +134,43 @@ button, input[type="submit"] {
   letter-spacing: 0.5px;
 }
 
-.header-photo.hidden {
-  display: none !important;
+.header-photo.hidden { display: none !important; }
+
+/* ===== SCREENS & CONTENT WRAPPER ===== */
+.content-wrapper {
+    flex: 1; /* Permite que o wrapper ocupe todo o espaço disponível */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
-
-/* ===== SCREENS (GARANTIR QUE APENAS UM ESTEJA ATIVO) ===== */
 .screen {
-  display: none; /* Por padrão, todas as telas ficam escondidas */
+  display: none; /* Oculta todas as telas por padrão */
   width: 100%;
-  max-width: 1200px; /* Limita a largura total das telas */
-  padding: 24px; /* Adiciona padding geral para não encostar nas bordas */
-  /* Remove flex-grow e alinamento interno, pois o content-wrapper fará isso */
+  min-height: 100vh; /* Ocupa a altura total do viewport */
+  flex-direction: column; /* Permite que o conteúdo interno seja colunar */
+  align-items: center;
+  justify-content: center;
 }
 .screen.active {
-    display: flex; /* Apenas a tela ativa é exibida, e ela é um flex container */
-    flex-direction: column; /* Alinha o conteúdo da tela em coluna */
-    align-items: center; /* Centraliza o conteúdo da tela */
-    justify-content: center; /* Centraliza verticalmente o conteúdo da tela */
+  display: flex; /* Exibe apenas a tela ativa */
 }
+
+/* Auth e Lobby precisam de um alinhamento específico se o header estiver invisível */
+#screen-auth, #screen-lobby {
+    justify-content: center;
+    /* Remover min-height se o app-header estiver visível sempre,
+       senão causa scroll desnecessário em telas pequenas */
+    min-height: 100vh;
+}
+/* No mobile, o lobby pode precisar de um pouco mais de espaço */
+@media (max-width: 768px) {
+    #screen-lobby .lobby-body {
+        align-items: flex-start; /* Alinha o conteúdo mais para cima em telas menores */
+    }
+}
+
 
 /* ===== AUTH ===== */
 .auth-container {
@@ -246,8 +250,19 @@ button, input[type="submit"] {
 .btn-google:hover { background: #f0f0f0; transform: translateY(-1px); }
 
 .auth-note { font-size: 12px; color: var(--text-muted); text-align: center; }
+.error-msg { color: var(--accent); font-size: 13px; text-align: center; min-height: 18px; }
+
 
 /* ===== LOBBY ===== */
+.lobby-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1; /* Ocupa o restante do espaço vertical */
+  padding: 24px;
+  width: 100%;
+}
+
 .lobby-container {
   background: var(--surface);
   border-radius: var(--radius);
@@ -262,26 +277,24 @@ button, input[type="submit"] {
 }
 
 .logo { text-align: center; }
-/* Ícone ajustado para o Ludo e cor do tema */
 .logo-icon {
   font-size: 64px;
   display: block;
   margin-bottom: 10px;
-  filter: drop-shadow(0 0 14px var(--accent)); /* Usa a cor de destaque do tema */
-  color: var(--text); /* Garante que o ícone é da cor do texto padrão */
+  filter: drop-shadow(0 0 14px rgba(233,69,96,0.5)); /* Sombra da cor accent */
 }
 .logo h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
 .logo p  { color: var(--text-muted); margin-top: 6px; font-size: 14px; }
 
-/* Adicionado ao lobby-container para o Ludo */
-.game-selector, .mode-selectors {
+.mode-selector {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+
 .mode-btn {
-  background: var(--surface2);
-  border: 2px solid rgba(255,255,255,0.08); /* Borda mais discreta */
+  background: rgba(255,255,255,0.04);
+  border: 2px solid rgba(255,255,255,0.08); /* Borda mais fina e discreta */
   border-radius: 10px;
   padding: 16px 12px;
   cursor: pointer;
@@ -291,19 +304,57 @@ button, input[type="submit"] {
   gap: 4px;
   transition: all 0.2s;
   color: var(--text);
-  text-decoration: none; /* remove underline de <a> */
 }
+
 .mode-btn:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.18);
 }
+
 .mode-btn.active {
-  background: rgba(233,69,96,0.12); /* Cor de destaque para ativo */
+  background: rgba(233,69,96,0.12); /* accent + 0.12 alpha */
   border-color: var(--accent);
 }
+
 .mode-icon  { font-size: 26px; }
 .mode-label { font-size: 14px; font-weight: 700; }
 .mode-desc  { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+.mode-panel { display: flex; flex-direction: column; gap: 14px; }
+.mode-panel.hidden { display: none; }
+.btn-full { width: 100%; justify-content: center; text-align: center; }
+
+.option-group { display: flex; flex-direction: column; gap: 10px; }
+
+.option-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+.player-count-btns, .ai-count-btns {
+    display: flex;
+    gap: 8px;
+}
+.player-count-btns .btn, .ai-count-btns .btn {
+    flex: 1; /* Faz os botões ocuparem espaço igualmente */
+}
+.player-count-btns .btn.active, .ai-count-btns .btn.active {
+  background: rgba(233,69,96,0.12); /* accent + 0.12 alpha */
+  border-color: var(--accent);
+}
+
+.ai-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 16px;
+}
 
 .lobby-actions { display: flex; flex-direction: column; gap: 16px; }
 
@@ -332,7 +383,7 @@ button, input[type="submit"] {
 .join-group input:focus { border-color: var(--accent); }
 .join-group input::placeholder { letter-spacing: 1px; text-transform: none; color: var(--text-muted); }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTONS GLOBAIS ===== */
 .btn {
   padding: 13px 26px;
   border: none;
@@ -352,46 +403,9 @@ button, input[type="submit"] {
 .btn-danger { background: rgba(220,53,69,0.2); color: #ff6b6b; border: 1px solid rgba(220,53,69,0.3); }
 .btn-danger:hover { background: rgba(220,53,69,0.4); }
 .btn-small { padding: 7px 14px; font-size: 13px; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
-.hidden { display: none !important; } /* Classe utilitária para esconder elementos */
-
-/* Modo Painéis (AI e Multiplayer) */
-.mode-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-}
 .btn-full { width: 100%; }
-
-.option-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.07);
-}
-
-.option-label {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-}
-
-.player-count-btns, .ai-count-btns {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-.player-count-btns .btn, .ai-count-btns .btn {
-    flex: 1; /* Distribui os botões igualmente */
-    min-width: 0; /* Permite que eles diminuam */
-}
-
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.hidden { display: none !important; }
 
 /* ===== WAITING ===== */
 .waiting-container {
@@ -399,7 +413,7 @@ button, input[type="submit"] {
   border-radius: var(--radius);
   padding: 52px 44px;
   width: 100%;
-  max-width: 400px;
+  max-width: 440px;
   box-shadow: var(--shadow);
   border: 1px solid rgba(255,255,255,0.06);
   text-align: center;
@@ -425,7 +439,7 @@ button, input[type="submit"] {
   letter-spacing: 7px; color: var(--accent2); font-family: monospace;
 }
 
-.copy-feedback { font-size: 13px; color: #4ade80; height: 18px; min-height: 18px; }
+.copy-feedback { font-size: 13px; color: #4ade80; height: 18px; }
 
 .spinner {
   width: 48px; height: 48px;
@@ -437,183 +451,222 @@ button, input[type="submit"] {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .waiting-players-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
     width: 100%;
+    margin-top: 10px;
     padding: 10px;
-    background: rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.03);
     border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.07);
+    text-align: left;
 }
+.waiting-players-list h3 { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
 .waiting-player-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 15px;
-    color: var(--text);
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+.waiting-player-row:last-child { border-bottom: none; }
 .player-color-dot {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    border: 2px solid var(--surface); /* Borda para contraste */
+    border: 1px solid rgba(255,255,255,0.2);
     flex-shrink: 0;
 }
+.waiting-players-count {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
 
-
-/* ===== GAME LAYOUT ===== */
+/* ===== GAME LAYOUT (LUDO) ===== */
 .game-layout {
   display: flex;
-  justify-content: center;
-  flex-wrap: wrap; /* Permite que os itens quebrem linha para responsividade */
+  align-items: flex-start; /* Alinha o topo das seções */
   gap: 24px;
   padding: 24px;
+  min-height: calc(100vh - 61px); /* Ajusta para considerar o app-header */
   width: 100%;
-  max-width: 1400px; /* Aumenta um pouco o max-width para acomodar tudo */
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-/* ===== SIDEBAR ===== */
+@media (max-width: 1024px) {
+  .game-layout { flex-direction: column; align-items: center; }
+  .game-sidebar { width: 100%; flex-direction: row; justify-content: space-around; }
+  .game-controls-section { order: 1; min-width: 200px; } /* Move para cima */
+  .players-list { order: 2; width: 100%; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .player-card { flex: 1; min-width: unset; max-width: 200px; }
+  .log-box { display: none; } /* Oculta log no mobile para ganhar espaço */
+}
+
+@media (max-width: 768px) {
+    .game-sidebar { flex-direction: column; gap: 15px; }
+    .players-list { flex-direction: column; flex-wrap: nowrap; }
+    .player-card { max-width: 100%; }
+    .game-controls-section { flex-direction: row; justify-content: center; gap: 15px; }
+    #btn-resign { order: 2; }
+    .dice-area { order: 1; }
+    .log-sidebar { display: none; } /* Garantir que o log não apareça */
+}
+
+
 .game-sidebar {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 280px; /* Largura um pouco maior para sidebar */
+  width: 280px; /* Largura um pouco maior para info dos players */
   flex-shrink: 0;
-  /* Retirado height: var(--board-size); para ser mais flexível */
-  justify-content: flex-start; /* Alinha o conteúdo ao topo */
+  /* Altura inicial para sincronizar com o tabuleiro */
+  height: var(--ludo-board-size);
+  justify-content: space-between;
+}
+.log-sidebar { margin-left: auto; } /* Empurra para a direita */
+
+.players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-/* Sidebar para o lado esquerdo */
-.left-sidebar { }
-
-/* Cards de jogadores na sidebar (Ludo) */
 .player-card {
   background: var(--surface);
   border-radius: 10px;
-  padding: 14px;
+  padding: 14px 16px;
   display: flex;
-  align-items: center; /* Alinhar itens ao centro verticalmente */
+  align-items: flex-start;
   gap: 12px;
-  border: 2px solid rgba(255,255,255,0.05); /* Borda padrão */
+  border: 2px solid rgba(255,255,255,0.05);
   transition: border-color 0.3s, box-shadow 0.3s;
-  width: 100%; /* Ocupa a largura total da sidebar */
 }
 .player-card.active-turn {
-  border-color: var(--accent2); /* Borda amarela para turno ativo */
+  border-color: var(--accent2);
   box-shadow: 0 0 18px rgba(245,166,35,0.18);
 }
-.player-card .player-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px; /* Quadrado com bordas arredondadas */
-  overflow: hidden; /* Garante que a imagem se ajuste */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+
+.player-avatar {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; /* Quadrado */
   flex-shrink: 0;
-  border: 2px solid transparent;
+  overflow: hidden; /* Garante que a imagem não vaze */
 }
-.player-card.red .player-avatar    { border-color: var(--ludo-red-dark); }
-.player-card.blue .player-avatar   { border-color: var(--ludo-blue-dark); }
-.player-card.green .player-avatar  { border-color: var(--ludo-green-dark); }
-.player-card.yellow .player-avatar { border-color: var(--ludo-yellow-dark); }
-
-
-.player-card .player-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.player-card .player-initials {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    font-weight: 700;
-    color: white; /* Texto branco para iniciais */
+.player-avatar img { width: 100%; height: 100%; object-fit: cover; } /* Para fotos de perfil */
+.player-initials {
+  width: 100%; height: 100%;
+  display: flex; justify-content: center; align-items: center;
+  font-size: 18px; font-weight: 700; color: white;
 }
 
-.player-card .player-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-.player-card .player-score {
-  font-size: 13px;
-  color: var(--text-muted);
-}
+
+.player-info { flex: 1; min-width: 0; }
+.player-name { font-size: 15px; font-weight: 600; display: block; color: var(--text); }
+.player-score { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
 .ludo-score-indicator {
     display: flex;
-    gap: 4px;
+    gap: 3px;
     margin-top: 5px;
+    min-height: 10px; /* Garante que a área não suma se não houver dots */
 }
 .pawn-on-base-dot {
-    width: 12px;
-    height: 12px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background-color: var(--text-muted); /* Cor neutra para peões na base */
-    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.2); /* Cor padrão para peça na base */
+    border: 1px solid rgba(0,0,0,0.2);
+    transition: all 0.2s;
 }
+/* Estilo para peça na base que pode sair */
 .pawn-on-base-dot.ready {
-    background-color: var(--accent2); /* Cor de destaque quando está pronto para sair */
+    background: var(--accent2) !important; /* Brilha amarelo */
+    box-shadow: 0 0 8px var(--accent2);
 }
 
 
-/* Área de Log */
-.log-box {
+/* Dice Area */
+.game-controls-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%; /* Ocupa a largura total na sidebar */
+}
+
+.dice-area {
     background: var(--surface);
     border-radius: 10px;
     padding: 16px;
-    flex: 1; /* Ocupa o espaço restante na sidebar */
-    border: 1px solid rgba(255,255,255,0.05);
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.06);
     display: flex;
     flex-direction: column;
     gap: 10px;
-    min-height: 150px; /* Altura mínima para o log */
+}
+.dice-display {
+    font-size: 4em;
+    height: 1em; /* Para manter o size consistente */
+    display: block;
+    line-height: 1;
+}
+
+.game-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* Log de Eventos */
+.log-box {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 16px;
+  flex: 1; /* Ocupa o espaço restante */
+  border: 1px solid rgba(255,255,255,0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .log-box h3 {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
 }
 .log-entries {
-    overflow-y: auto;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    font-size: 13px;
-    font-family: inherit; /* Usa a mesma fonte do body */
-    line-height: 1.4;
-    color: var(--text-muted);
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  font-family: monospace;
 }
 .log-entries::-webkit-scrollbar { width: 4px; }
 .log-entries::-webkit-scrollbar-track { background: transparent; }
 .log-entries::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
 
 .log-entry {
-    padding-left: 8px; /* Recuo para distinguí-lo */
-    border-left: 2px solid rgba(255,255,255,0.1);
+  padding: 3px 4px;
+  border-radius: 4px;
+  word-break: break-word; /* Quebra palavras longas */
 }
-/* Cores do log por jogador */
-.log-entry.color-red    { border-color: var(--ludo-red); color: var(--ludo-red); }
-.log-entry.color-blue   { border-color: var(--ludo-blue); color: var(--ludo-blue); }
-.log-entry.color-green  { border-color: var(--ludo-green); color: var(--ludo-green); }
-.log-entry.color-yellow { border-color: var(--ludo-yellow); color: var(--ludo-yellow); }
+.log-entry.color-red { color: var(--ludo-red); }
+.log-entry.color-blue { color: var(--ludo-blue); }
+.log-entry.color-green { color: var(--ludo-green); }
+.log-entry.color-yellow { color: var(--ludo-yellow); }
+.log-entry.color-neutral { color: var(--text-muted); }
 
 
-/* ===== BOARD AREA - LUDO ===== */
+/* Board Area */
 .board-area {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  flex-grow: 1; /* Permite que o tabuleiro e controles ocupem o espaço principal */
+  flex: 1; /* Ocupa o máximo de espaço horizontal */
 }
 
 .status-bar {
@@ -626,10 +679,30 @@ button, input[type="submit"] {
   min-width: 300px;
   text-align: center;
   transition: all 0.3s;
-  color: var(--text);
 }
 .status-bar.your-turn { border-color: var(--accent2); color: var(--accent2); }
-.status-bar.ai-turn   { border-color: var(--ludo-blue); color: var(--ludo-blue); } /* IA com borda azul */
+
+/* Thinking indicator para IA */
+.thinking-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+.thinking-dots span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+  animation: pulse-dot 1.2s infinite ease-in-out both;
+}
+.thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+.thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+@keyframes pulse-dot {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
 
 .spectator-bar {
   text-align: center;
@@ -640,109 +713,130 @@ button, input[type="submit"] {
   padding: 10px 20px;
   font-size: 14px;
   font-weight: 600;
-  margin-top: 0; /* Ajuste para espaçamento dentro da board-area */
+  margin-bottom: 12px;
   width: 100%;
 }
 
 
-/* Tabuleiro Ludo (15x15) */
-.ludo-board {
-  display: grid;
-  grid-template-columns: repeat(var(--LUDO-CONSTANTS--BOARD_SIZE, 15), var(--ludo-cell-size));
-  grid-template-rows: repeat(var(--LUDO-CONSTANTS--BOARD_SIZE, 15), var(--ludo-cell-size));
+/* ===== TABULEIRO LUDO ===== */
+.ludo-board-wrapper {
+  position: relative;
   width: var(--ludo-board-size);
   height: var(--ludo-board-size);
-  border: 2px solid rgba(255,255,255,0.12);
-  border-radius: 8px; /* Bordas arredondadas para o tabuleiro */
-  overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius);
+  flex-shrink: 0; /* Não permite que diminua */
   box-shadow: var(--shadow);
-  background-color: var(--surface2); /* Fundo padrão do tabuleiro */
+  overflow: hidden; /* Esconde qualquer coisa que vaze */
+}
+
+.ludo-board {
+  display: grid;
+  grid-template-columns: repeat(15, var(--ludo-cell-size));
+  grid-template-rows: repeat(15, var(--ludo-cell-size));
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255,255,255,0.02); /* Fundo geral para células neutras */
 }
 
 .ludo-cell {
   width: var(--ludo-cell-size);
   height: var(--ludo-cell-size);
-  background-color: transparent; /* Padrão transparente, as cores de zona sobrescreverão */
-  position: relative;
+  border: 0.5px solid rgba(255,255,255,0.03); /* Linhas finas */
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 0.5px solid rgba(0,0,0,0.1); /* Linhas finas de grid */
+  position: relative;
 }
 
-/* Estilos para zonas do tabuleiro (base, caminhos, meio) */
-.ludo-cell.zone-red     { background-color: rgba(var(--ludo-red-rgb), 0.2); } /* Exemplo de uso de RGB para opacidade */
-.ludo-cell.zone-blue    { background-color: rgba(var(--ludo-blue-rgb), 0.2); }
-.ludo-cell.zone-green   { background-color: rgba(var(--ludo-green-rgb), 0.2); }
-.ludo-cell.zone-yellow  { background-color: rgba(var(--ludo-yellow-rgb), 0.2); }
-.ludo-cell.zone-center  { background-color: var(--surface); } /* Centro */
+/* Bases de Cores (6x6) */
+.zone-red-base, .zone-blue-base, .zone-green-base, .zone-yellow-base {
+  background-color: var(--surface2); /* Cor de fundo das bases */
+}
+/* Detalhes de cor interna das bases */
+.zone-red-base:nth-child(n+1):nth-child(-n+6), /* linha 1 da base vermelha */
+.zone-red-base:nth-child(n+16):nth-child(-n+21), /*linha 2*/
+.zone-red-base:nth-child(n+31):nth-child(-n+36), /*linha 3*/
+.zone-red-base:nth-child(n+46):nth-child(-n+51), /*linha 4*/
+.zone-red-base:nth-child(n+61):nth-child(-n+66), /*linha 5*/
+.zone-red-base:nth-child(n+76):nth-child(-n+81) /*linha 6*/
+{
+    /* Exemplo: Quadrados internos */
+}
 
-/* Casas seguras */
-.ludo-cell.safe::after {
+
+/* Corredores Finais (Home Paths) */
+.zone-red-homepath { background-color: rgba(var(--ludo-red-dark), 0.3); }
+.zone-blue-homepath { background-color: rgba(var(--ludo-blue-dark), 0.3); }
+.zone-green-homepath { background-color: rgba(var(--ludo-green-dark), 0.3); }
+.zone-yellow-homepath { background-color: rgba(var(--ludo-yellow-dark), 0.3); }
+
+/* Centros de partida de cada cor (grandes círculos), a cor interna da base */
+.zone-red-base.zone-red-start-inner { background-color: var(--ludo-red-dark); border: 2px solid var(--ludo-red); z-index: 1;}
+.zone-blue-base.zone-blue-start-inner { background-color: var(--ludo-blue-dark); border: 2px solid var(--ludo-blue); z-index: 1;}
+.zone-green-base.zone-green-start-inner { background-color: var(--ludo-green-dark); border: 2px solid var(--ludo-green); z-index: 1;}
+.zone-yellow-base.zone-yellow-start-inner { background-color: var(--ludo-yellow-dark); border: 2px solid var(--ludo-yellow); z-index: 1;}
+
+
+/* Casa Central Final */
+.zone-center-final {
+  background: radial-gradient(circle at center, var(--text-muted) 10%, var(--surface2) 80%);
+  border: 1px solid rgba(255,255,255,0.1);
+  z-index: 1;
+}
+
+/* Casas de Saída (entrada na trilha principal) */
+.zone-red-entry { background-color: var(--ludo-red); border-color: var(--ludo-red); }
+.zone-blue-entry { background-color: var(--ludo-blue); border-color: var(--ludo-blue); }
+.zone-green-entry { background-color: var(--ludo-green); border-color: var(--ludo-green); }
+.zone-yellow-entry { background-color: var(--ludo-yellow); border-color: var(--ludo-yellow); }
+
+/* Casas Seguras (estrelas) */
+.ludo-cell.safe {
+    background-color: var(--surface2); /* Mais escuro */
+    position: relative;
+}
+.ludo-cell.safe::before {
     content: '★'; /* Estrela */
     position: absolute;
-    font-size: calc(var(--ludo-cell-size) * 0.6);
+    font-size: 1.5em;
     color: var(--accent2); /* Cor de destaque para a estrela */
-    opacity: 0.7;
     z-index: 0;
 }
 
-/* Peões */
+
+/* Peças do Ludo */
 .pawn {
-  position: absolute; /* Permite posicionamento flexível dentro da célula */
   width: calc(var(--ludo-cell-size) * 0.8);
   height: calc(var(--ludo-cell-size) * 0.8);
-  border-radius: 50%;
+  border-radius: 50%; /* Círculo */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--ludo-cell-size) * 0.5); /* Tamanho do símbolo */
+  font-size: calc(var(--ludo-cell-size) * 0.5); /* Tamanho do ícone */
   font-weight: bold;
-  color: white; /* Cor do símbolo */
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  z-index: 1; /* Para ficar acima da célula */
-  cursor: default; /* Padrão */
+  color: white;
+  z-index: 5;
+  position: absolute; /* Para centralizar bem na célula */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  cursor: grab;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
 }
 
-/* Cores de fundo dos peões */
-.pawn.red    { background-color: var(--ludo-red);    box-shadow: 0 0 8px var(--ludo-red); }
-.pawn.blue   { background-color: var(--ludo-blue);   box-shadow: 0 0 8px var(--ludo-blue); }
-.pawn.green  { background-color: var(--ludo-green);  box-shadow: 0 0 8px var(--ludo-green); }
-.pawn.yellow { background-color: var(--ludo-yellow); box-shadow: 0 0 8px var(--ludo-yellow); }
+.pawn.red    { background-color: var(--ludo-red); border: 2px solid var(--ludo-red-dark); }
+.pawn.blue   { background-color: var(--ludo-blue); border: 2px solid var(--ludo-blue-dark); }
+.pawn.green  { background-color: var(--ludo-green); border: 2px solid var(--ludo-green-dark); }
+.pawn.yellow { background-color: var(--ludo-yellow); border: 2px solid var(--ludo-yellow-dark); }
 
-/* Peão jogável */
 .pawn.movable {
   cursor: pointer;
+  box-shadow: 0 0 15px var(--accent2), 0 0 5px var(--accent2); /* Brilho para peças jogáveis */
   transform: scale(1.1);
-  box-shadow: 0 0 15px 5px var(--accent2); /* Brilho de seleção */
-  outline: 2px solid var(--accent2);
-  outline-offset: 2px;
 }
-.pawn.movable:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 20px 8px var(--accent2);
-}
+.pawn.movable:hover { transform: scale(1.15); box-shadow: 0 0 20px var(--accent2), 0 0 8px var(--accent2); }
 
 
-/* Controles do Jogo */
-.game-controls {
-  display: flex;
-  gap: 14px;
-}
-.game-controls .btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  padding: 12px 24px;
-}
-
-#dice-display {
-    font-size: 20px;
-}
-
-/* ===== MODALS ===== */
+/* ===== MODAIS ===== */
 .modal {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.72);
@@ -780,20 +874,17 @@ button, input[type="submit"] {
   width: 100%;
 }
 
-/* ===== MISC ===== */
-.error-msg { color: var(--accent); font-size: 13px; text-align: center; min-height: 18px; }
 
-
-/* ===== HISTÓRICO E LIVE GAMES (LUDO) ===== */
+/* ===== HISTÓRICO E PARTIDAS AO VIVO ===== */
 .history-layout {
   display: flex;
   flex-direction: column;
   max-width: 860px;
-  width: 100%; /* Ocupa a largura total disponível no content-wrapper */
   margin: 0 auto;
   padding: 32px 24px;
   gap: 24px;
-  justify-content: flex-start; /* Alinha o conteúdo ao topo */
+  min-height: calc(100vh - 61px); /* Ajusta para headder */
+  width: 100%;
 }
 
 .history-header {
@@ -801,9 +892,10 @@ button, input[type="submit"] {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap; /* Permite que os itens quebrem linha */
+  margin-bottom: 0px; /* Reduz espaçamento */
 }
 
-.history-header h2 { flex-grow: 1; font-size: 22px; } /* Título ocupa o espaço */
+.history-header h2 { flex: 1; font-size: 22px; }
 
 .history-stats {
   display: flex;
@@ -867,107 +959,39 @@ button, input[type="submit"] {
 .history-moves    { font-size: 12px; color: var(--text-muted); }
 .history-date     { font-size: 12px; color: var(--text-muted); }
 
-
-/* ===== RESPONSIVE — TABLET ===== */
-@media (max-width: 1024px) {
-  .game-layout {
-    flex-direction: column; /* Pilha os elementos do jogo */
-    align-items: center;
-    padding: 15px;
-    gap: 18px;
-  }
-
-  .game-sidebar {
-    width: 100%;
-    max-width: 600px; /* Limita a largura da sidebar empilhada */
-    flex-direction: row; /* Players e Log lado a lado */
-    align-items: flex-start;
-    gap: 15px;
-  }
-
-  .players-row {
-    flex-direction: column; /* Cards de jogadores empilhados novamente */
-    flex: 1;
-    gap: 8px;
-  }
-  .log-box {
-    flex: 1;
-  }
-
-  .board-area {
-    width: 100%;
-    max-width: var(--ludo-board-size); /* Limita para não ficar muito grande */
-  }
-
-  .history-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-  }
-}
-
-/* ===== RESPONSIVE — MOBILE ===== */
+/* Media Queries para Responsividade */
 @media (max-width: 768px) {
-    .app-header {
-        padding: 10px 15px;
-    }
-    .header-username {
-        display: none; /* Esconde o nome do usuário para economizar espaço */
-    }
-    .lobby-container, .auth-container, .waiting-container, .modal-box {
-        padding: 30px 20px;
-        max-width: 95%;
-    }
-    .game-sidebar {
-        flex-direction: column; /* Sidebar volta a ser coluna */
-        gap: 10px;
-    }
-    .players-row {
-        flex-direction: row; /* Cards de jogadores agora lado a lado na visão mobile */
-        flex-wrap: wrap; /* Permite que eles quebrem linha */
-    }
-    .player-card {
-        flex: 1 1 calc(50% - 5px); /* Dois cards por linha */
-        max-width: calc(50% - 5px);
-    }
-    .log-box {
-        min-height: 120px; /* Log menor no mobile */
-    }
-    .game-controls {
-        flex-direction: column; /* Botões empilhados */
-        width: 100%;
-    }
-    .game-controls .btn {
-        width: 100%;
-    }
-    .history-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    .history-card-right {
-        width: 100%;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
-}
+  .app-header { padding: 8px 15px; }
+  .header-logo { font-size: 16px; }
+  .header-username { max-width: 80px; }
 
-@media (max-width: 500px) {
-    .player-card {
-        flex: 1 1 100%; /* Um card por linha */
-        max-width: 100%;
-    }
-    .lobby-container, .auth-container, .waiting-container {
-        padding: 20px 15px;
-    }
+  .auth-container, .lobby-container, .waiting-container, .modal-box {
+      padding: 25px;
+  }
+  .logo h1 { font-size: 2em; }
+  .mode-btn { padding: 10px 10px; font-size: 0.9em; }
+  .mode-btn .mode-icon { font-size: 1.5em; }
+  .mode-btn .mode-desc { display: none; } /* Esconde descrição no mobile */
+
+  .player-count-btns, .ai-count-btns { flex-wrap: wrap; gap: 10px; }
+  .player-count-btns .btn, .ai-count-btns .btn { flex-basis: calc(50% - 5px); }
+
+  .room-code-box { flex-direction: column; gap: 10px; }
+  #display-room-code { font-size: 1.8em; }
+
+  .waiting-players-list { padding: 10px; }
+
+  .history-header { flex-direction: column; text-align: center; gap: 10px; }
+  .history-header h2 { font-size: 1.5em; }
+  .history-stats { justify-content: center; width: 100%; }
+  .modal-actions { flex-direction: column; gap: 10px; margin-top: 20px; }
 }
 
 
-/* Constantes LUDO RGB para opacidade no CSS */
-:root {
-  --ludo-red-rgb: 231, 76, 60;
-  --ludo-blue-rgb: 52, 152, 219;
-  --ludo-green-rgb: 46, 204, 113;
-  --ludo-yellow-rgb: 241, 196, 15;
+@media (max-width: 480px) {
+    .lobby-container { padding: 25px 20px; gap: 25px; }
+    .history-card { flex-direction: column; text-align: center; gap: 10px; align-items: stretch; }
+    .history-card-center, .history-card-right { align-items: center; }
+    .history-card-left { min-width: auto; }
 }
+

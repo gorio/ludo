@@ -78,7 +78,6 @@ window.LUDO_CONSTANTS = {
   ],
 
   // Coordenadas (row, col) para os corredores finais de cada cor (Home Paths)
-  // São 6 casas, de 0 a 5, onde 5 é a última antes da casa central.
   HOME_PATHS: {
     red:    [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]], // Da casa de entrada para o centro
     blue:   [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]], // Da casa de entrada para o centro
