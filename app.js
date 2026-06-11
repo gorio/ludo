@@ -12,16 +12,12 @@ const FIREBASE_CONFIG = {
 };
 
 /* =====================================================
-   CONSTANTES E TRADUÇÕES
+   CONSTANTES E TRADUÇÕES (AGORA CENTRALIZADAS EM ludo_constants.js)
 ===================================================== */
-const LUDO_COLORS = ['red', 'blue', 'green', 'yellow'];
-const COLOR_TRANSLATIONS = {
-  red: 'Vermelho', blue: 'Azul', green: 'Verde', yellow: 'Amarelo'
-};
+// As constantes LUDO_COLORS, COLOR_TRANSLATIONS, PIECES_SYMBOLS, etc.,
+// agora são carregadas de `ludo_constants.js` e acessíveis via `window.LUDO_CONSTANTS`.
+// Não as declare aqui novamente para evitar o erro "has already been declared".
 
-const PIECES_SYMBOLS = {
-  red: '🔴', blue: '🔵', green: '🟢', yellow: '🟡'
-};
 
 /* =====================================================
    ESTADO GLOBAL DA APLICAÇÃO
@@ -36,7 +32,7 @@ let roomCode = null;
 let roomRef = null;
 let specRef = null;
 let myId = null;     // UID do Firebase para usuários logados ou um ID temporário para convidados.
-let myColor = null;    // Cor do jogador atual na partida
+let myColor = null;    // Cor do jogador atual na partida (ex: 'red', 'blue')
 let gameActive = false;
 let gameMode = 'multiplayer';  // 'multiplayer' ou 'ai'
 let aiThinking = false;
@@ -92,10 +88,10 @@ window.addEventListener('DOMContentLoaded', () => {
     db = firebase.database();
     fbAuth = firebase.auth();
 
-    currentAuthManager = new AuthManager();
+    currentAuthManager = new AuthManager(); // Classe AuthManager definida em auth.js
     currentAuthManager.init(); // Inicializa o AuthManager e configura o onAuthStateChanged
 
-    historyManager = new GameHistoryManager(); // Inicializa o GameHistoryManager
+    historyManager = new GameHistoryManager(); // Classe GameHistoryManager definida em history.js
 
   } catch (e) {
     console.error('Firebase init error:', e);
@@ -199,6 +195,8 @@ function initAuthUI() {
   });
   el('btn-login-google', 'click', () => currentAuthManager.loginWithGoogle()
     .catch(e => { if (e.code !== 'auth/popup-closed-by-user') showAuthError(authErrorMsg(e.code)); }));
+  // No Ludo, não temos login anônimo direto no AuthUI, a menos que seja explicitamente necessário.
+  // Por ora, o myId já lida com usuários não autenticados.
   el('btn-register', 'click', async () => {
     const name = gel('reg-name').value.trim();
     const email = gel('reg-email').value.trim();
@@ -212,8 +210,7 @@ function initAuthUI() {
   });
   el('btn-register-google', 'click', () => currentAuthManager.loginWithGoogle()
     .catch(e => { if (e.code !== 'auth/popup-closed-by-user') showAuthError(authErrorMsg(e.code)); }));
-  // No Ludo, não temos login anônimo direto no AuthUI, a menos que seja explicitamente necessário.
-  // Por ora, o myId já lida com usuários não autenticados.
+
 }
 
 /**
@@ -259,11 +256,10 @@ function initLobbyUI() {
   el('btn-join', 'click', joinGame);
   el('input-room', 'keydown', e => { if (e.key === 'Enter') joinGame(); });
   el('btn-open-history', 'click', openHistoryScreen);
+  el('btn-ludo-live-games', 'click', openLiveGamesScreen);
   el('btn-spectate', 'click', spectateGame);
   el('input-spectate', 'keydown', e => { if (e.key === 'Enter') spectateGame(); });
   el('btn-start-ai', 'click', startAIGame);
-  el('btn-ludo-live-games', 'click', openLiveGamesScreen);
-
 
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -300,7 +296,7 @@ function initGameUI() {
   el('btn-copy', 'click', copyRoomCode);
   el('btn-resign', 'click', resign);
   el('btn-roll', 'click', rollDice); // Botão de rolar dado
-  el('btn-new-game', 'click', goLobby); // Ao clicar em "Nova Partida" no game over, volta para lobby para configurar.
+  el('btn-new-game', 'click', goLobby); // Ao clicar em "Nova Partida" no game over, volta para lobby para configurar. (Agora só btn-gameover-new e btn-gameover-lobby são usados)
   el('btn-back-lobby', 'click', () => {
     if (specRef) { specRef.off(); specRef = null; }
     goLobby();
@@ -413,17 +409,17 @@ async function createGame() {
   const myName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Jogador';
 
   // Adiciona o jogador criador da sala (sempre cor vermelha por padrão)
-  playersConfig.push({ id: myId, name: myName, color: LUDO_COLORS[0], isAI: false, photoURL: currentAuthManager.photoURL });
-  myColor = LUDO_COLORS[0];
+  playersConfig.push({ id: myId, name: myName, color: window.LUDO_CONSTANTS.LUDO_COLORS[0], isAI: false, photoURL: currentAuthManager.photoURL });
+  myColor = window.LUDO_CONSTANTS.LUDO_COLORS[0];
 
   // Adiciona slots para os outros jogadores humanos
   for (let i = 1; i < selectedHumanPlayersCount; i++) {
-    playersConfig.push({ id: null, name: `Jogador ${i + 1}`, color: LUDO_COLORS[i], isAI: false, photoURL: null });
+    playersConfig.push({ id: null, name: `Jogador ${i + 1}`, color: window.LUDO_CONSTANTS.LUDO_COLORS[i], isAI: false, photoURL: null });
   }
 
   // Preenche os slots restantes com IAs até 4 jogadores totais (se houver espaço)
-  for (let i = playersConfig.length; i < LUDO_COLORS.length; i++) {
-    playersConfig.push({ id: `ai_${LUDO_COLORS[i]}`, name: `IA ${COLOR_TRANSLATIONS[LUDO_COLORS[i]]}`, color: LUDO_COLORS[i], isAI: true, photoURL: null });
+  for (let i = playersConfig.length; i < window.LUDO_CONSTANTS.LUDO_COLORS.length; i++) {
+    playersConfig.push({ id: `ai_${window.LUDO_CONSTANTS.LUDO_COLORS[i]}`, name: `IA ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[window.LUDO_CONSTANTS.LUDO_COLORS[i]]}`, color: window.LUDO_CONSTANTS.LUDO_COLORS[i], isAI: true, photoURL: null });
   }
 
   try {
@@ -454,9 +450,10 @@ async function createGame() {
       if (!roomRef) return;
       const snap = await roomRef.once('value');
       if (snap.exists() && snap.val()?.status === 'waiting') {
+        const currentRoomCode = roomCode; // Captura o roomCode antes de goLobby resetar
         await roomRef.remove();
         // Verifica se a sala ainda é a que o usuário criou antes de redirecionar para o lobby
-        if (roomCode === snap.key) { // Usamos snap.key porque roomCode pode ter sido resetado
+        if (currentRoomCode === snap.key) {
           goLobby();
           showLobbyError('Sua sala foi removida por inatividade.');
         }
@@ -556,9 +553,8 @@ async function joinGame() {
       return;
     }
 
-
     roomCode = code;
-    myColor = LUDO_COLORS[emptySlotIndex]; // Atribui a cor do slot ao jogador
+    myColor = window.LUDO_CONSTANTS.LUDO_COLORS[emptySlotIndex]; // Atribui a cor do slot ao jogador
     const myName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Jogador';
 
     // Atualiza o slot com os dados do jogador
@@ -574,7 +570,7 @@ async function joinGame() {
     await roomRef.update({ players: updatedPlayers, status: newStatus });
 
     // Deserializa o estado do jogo que já estava na sala
-    engine.deserialize(data.state);
+    engine.deserialize(JSON.parse(data.state)); // Deserialize o JSON STRING
 
     if (newStatus === 'playing') {
       startGameScreen(updatedPlayers);
@@ -599,7 +595,7 @@ async function joinGame() {
         updateWaitingList(d.players || [], d.humanPlayersRequired);
       } else if (d.status === 'playing' && d.state) {
         roomRef.off(); // Desliga o listener quando o jogo começa
-        engine.deserialize(d.state);
+        engine.deserialize(JSON.parse(d.state)); // Deserialize o JSON STRING
         startGameScreen(d.players);
       }
     });
@@ -634,7 +630,7 @@ async function spectateGame() {
     isSpectator = true;
     roomCode = code;
     myColor = null; // Espectador não tem uma cor associada para jogar
-    engine.deserialize(data.state); // Carrega o estado atual do jogo
+    engine.deserialize(JSON.parse(data.state)); // Carrega o estado atual do jogo
 
     startGameScreen(data.players);
     gel('spectator-bar').classList.remove('hidden');
@@ -647,7 +643,7 @@ async function spectateGame() {
         showLobbyError('A partida que você estava assistindo foi encerrada ou removida.');
         return;
       }
-      engine.deserialize(d.state);
+      engine.deserialize(JSON.parse(d.state));
       renderGame();
       if (d.status === 'finished' || d.status === 'resigned' || d.status === 'abandoned') {
         logEvent('Partida encerrada.', 'neutral');
@@ -747,7 +743,7 @@ function startAIGame() {
   const myName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Jogador';
   const playersConfig = [];
 
-  const availableColors = [...LUDO_COLORS]; // Copia para não modificar o original
+  const availableColors = [...window.LUDO_CONSTANTS.LUDO_COLORS]; // Copia para não modificar o original
 
   // Adiciona o jogador humano (sempre a primeira cor disponível)
   myColor = availableColors.shift(); // Pega a primeira cor disponível
@@ -757,15 +753,15 @@ function startAIGame() {
   for (let i = 0; i < selectedAiCount; i++) {
     const aiColor = availableColors.shift(); // Pega a próxima cor disponível
     if (aiColor) {
-      playersConfig.push({ id: `ai_${aiColor}`, name: `IA ${COLOR_TRANSLATIONS[aiColor]}`, color: aiColor, isAI: true, photoURL: null });
+      playersConfig.push({ id: `ai_${aiColor}`, name: `IA ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[aiColor]}`, color: aiColor, isAI: true, photoURL: null });
     }
   }
 
   // Preenche quaisquer slots restantes com IAs se o total de jogadores for menor que COLORS.length
-  while (playersConfig.length < LUDO_COLORS.length) {
+  while (playersConfig.length < window.LUDO_CONSTANTS.LUDO_COLORS.length) {
     const aiColor = availableColors.shift();
     if (aiColor) {
-      playersConfig.push({ id: `ai_${aiColor}_auto`, name: `IA ${COLOR_TRANSLATIONS[aiColor]}`, color: aiColor, isAI: true, photoURL: null });
+      playersConfig.push({ id: `ai_${aiColor}_auto`, name: `IA ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[aiColor]}`, color: aiColor, isAI: true, photoURL: null });
     }
   }
 
@@ -773,13 +769,11 @@ function startAIGame() {
   startGameScreen(playersConfig); // Inicia a tela de jogo
 
   // Se o primeiro jogador for IA, agenda o movimento da IA
-  if (engine.activePlayer.isAI) {
-    if (engine.activePlayer.id !== myId) { // Confirmar que não é o jogador humano que está "fingindo" ser IA.
-       setTimeout(doAITurn, 1500); // Dá um pequeno delay para a UI renderizar
-    } else {
-        // Isso pode acontecer se, por algum motivo, o myId esteja atrelado a uma IA, o que não é o esperado.
-        console.warn('Erro: Jogador humano com ID de IA.', myId, engine.activePlayer.id);
-    }
+  if (engine.activePlayer.isAI && engine.activePlayer.id !== myId) {
+     setTimeout(doAITurn, 1500); // Dá um pequeno delay para a UI renderizar
+  } else if (engine.activePlayer.isAI && engine.activePlayer.id === myId) {
+      // Isso pode acontecer se, por algum motivo, o myId seja de um slot de IA, o que não é o esperado.
+      console.warn('Erro: Jogador humano com ID de IA.', myId, engine.activePlayer.id);
   }
 }
 
@@ -906,6 +900,12 @@ async function doMovePawn(playerPawnIdx) {
   // Se o próximo jogador for IA (devido a extra turn ou mudança de turno), agenda o movimento
   if (engine.activePlayer.isAI && engine.activePlayer.id !== myId) {
     setTimeout(doAITurn, 1500);
+  } else {
+    // If it's your turn again, re-enable roll button for the next phase
+    if (isMyTurn() && engine.phase === 'roll') {
+      const btnRoll = gel('btn-roll');
+      if (btnRoll) btnRoll.disabled = false;
+    }
   }
 }
 
@@ -929,8 +929,8 @@ async function doAITurn() {
     const serializedState = engine.serialize();
     renderGame(); // Mostra o dado rolado
 
-    if (gameMode === 'multiplayer' && roomRef) {
-      await roomRef.update({ state: serializedState });
+    if (gameMode === 'multiplayer') { // Verifica se roomRef existe para multiplayer.
+      if(roomRef) { await roomRef.update({ state: serializedState }); }
     }
 
     // Verifica se o jogo terminou
@@ -940,7 +940,7 @@ async function doAITurn() {
     }
 
     // Se a IA ainda for o jogador ativo (por extra turn ou porque o "rollDice" a moveu para a fase de "move")
-    if (engine.activePlayer.isAI && engine.activePlayer.id !== myId) {
+    if (engine.activePlayer.isAI) { // removido `&& engine.activePlayer.id !== myId` pois AI pode ser o único jogador.
         setTimeout(doAITurn, 1500); // Agenda o próximo passo da IA
     } else {
         aiThinking = false;
@@ -954,8 +954,8 @@ async function doAITurn() {
       const serializedState = engine.serialize();
       renderGame(); // Mostra o peão movido
 
-      if (gameMode === 'multiplayer' && roomRef) {
-        await roomRef.update({ state: serializedState });
+      if (gameMode === 'multiplayer') { // Verifica se roomRef existe para multiplayer.
+        if (roomRef) { await roomRef.update({ state: serializedState }); }
       }
 
       // Verifica se o jogo terminou
@@ -965,19 +965,19 @@ async function doAITurn() {
       }
 
       // Se a IA ainda for o jogador ativo (ex: ganhou turno extra), agenda o próximo passo da IA
-      if (engine.activePlayer.isAI && engine.activePlayer.id !== myId) {
+      if (engine.activePlayer.isAI) { // removido `&& engine.activePlayer.id !== myId`
         setTimeout(doAITurn, 1500);
       } else {
         aiThinking = false;
         renderGame();
       }
     } else { // AI não encontrou movimento válido - deveria passar a vez (já tratado na LudoEngine)
-      logEvent(`IA (${engine.activePlayer.name}) não encontrou movimento válido.`, 'neutral');
+      logEvent(`IA (${engine.activePlayer.name}) não encontrou movimento válido. Passando a vez.`, 'neutral');
       // O LudoEngine já deve ter passado o turno se não há movimentos válidos na fase de 'move'
       // Portanto, aqui apenas finalizamos o turno da IA e talvez agendamos a próxima se ainda for IA.
       aiThinking = false;
       renderGame();
-      if (engine.activePlayer.isAI && engine.activePlayer.id !== myId) {
+      if (engine.activePlayer.isAI) {
           setTimeout(doAITurn, 1500);
       }
     }
@@ -1003,17 +1003,20 @@ async function handleGameEnd() {
   renderGame(); // Renderiza o estado final
 
   const myPlayer = engine.players.find(p => p.id === myId);
-  const result = engine.status === 'finished' && engine.winner === myPlayer.color ? 'win' : 'loss';
+  const result = engine.status === 'finished' && engine.winner === myPlayer?.color ? 'win' : 'loss'; // myPlayer pode ser undefined se for AI ou não encontrado.
+
+  const gameId = roomRef ? roomCode : `ai_${Date.now()}`;
 
   // Salva o jogo no Firebase
-  await historyManager.saveGame({
-    gameType: 'ludo',
-    gameId: roomRef ? roomCode : `ai_${Date.now()}`, // ID da sala ou um ID gerado para AI
+  await historyManager.saveLudoGame({ // Usar saveLudoGame
+    gameId: gameId,
     mode: gameMode,
-    players: engine.players.map(p => ({ id: p.id, name: p.name, color: p.color, isAI: p.isAI })),
+    players: engine.players.map(p => ({ id: p.id, name: p.name, color: p.color, isAI: p.isAI, score: p.score })),
     myColor: myColor,
-    result: result,
-    endedAt: Date.now(),
+    myId: myId,
+    winnerColor: engine.winner,
+    status: engine.status,
+    roomCode: roomCode
   });
 
   // Atualiza o status da sala para 'finished' no multiplayer
@@ -1023,7 +1026,7 @@ async function handleGameEnd() {
     roomRef = null;
   }
 
-  showGameOver('🏆 Vitória!', `${COLOR_TRANSLATIONS[engine.winner]} venceu a partida!`);
+  showGameOver('Partida Terminada!', `${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[engine.winner]} venceu a partida! 🏆`);
 }
 
 /**
@@ -1036,23 +1039,20 @@ async function resign() {
   gameActive = false;
   aiThinking = false; // Para a IA de pensar se estiver em um turno dela.
 
-  let winningPlayer = null;
-  // Encontrar o próximo jogador humano se houver, ou a IA
-  // O vencedor será o primeiro jogador não IA diferente do que resignou, ou a IA se só tiver IA.
-  const otherPlayers = engine.players.filter(p => p.id !== myId);
+  let winningPlayerColor = null;
+  // Se houver outros jogadores humanos ou IAs que não somos nós, eles são os potenciais vencedores
+  const otherPlayers = engine.players.filter(p => !p.isAI && p.id !== myId || p.isAI && p.id !== myId);
   if (otherPlayers.length > 0) {
-      winningPlayer = otherPlayers[0]; // Qualquer um dos outros jogadores pode ser o "ganhador" por default
+      winningPlayerColor = otherPlayers[0].color; // Qualquer um dos outros jogadores pode ser o "ganhador" por default
+  } else {
+      // Cenário de AI (várias IAs), ou se for multiplayer 1vs0 (improvável)
+      winningPlayerColor = myColor === window.LUDO_CONSTANTS.LUDO_COLORS[0] ? window.LUDO_CONSTANTS.LUDO_COLORS[1] : window.LUDO_CONSTANTS.LUDO_COLORS[0]; // Apenas um fallback
   }
-
-  if (!winningPlayer) { // Cenário improvável de resignar sozinho.
-      winningPlayer = { color: 'draw' }; // Ou definir como draw ou o próprio jogador
-  }
-  const winnerColor = winningPlayer.color;
 
   if (gameMode === 'multiplayer' && roomRef) {
     await roomRef.update({
       status: 'resigned',
-      winner: winnerColor,
+      winner: winningPlayerColor,
       state: engine.serialize() // Salva o estado final
     }).catch(e => console.error('Erro ao atualizar sala para resignação:', e));
     roomRef.off(); // Desliga o listener da sala.
@@ -1060,17 +1060,18 @@ async function resign() {
   }
 
   // Salva o jogo como "loss" por resignação
-  await historyManager.saveGame({
-    gameType: 'ludo',
+  await historyManager.saveLudoGame({ // Usar saveLudoGame
     gameId: roomRef ? roomCode : `ai_resigned_${Date.now()}`,
     mode: gameMode,
-    players: engine.players.map(p => ({ id: p.id, name: p.name, color: p.color, isAI: p.isAI })),
+    players: engine.players.map(p => ({ id: p.id, name: p.name, color: p.color, isAI: p.isAI, score: p.score })),
     myColor: myColor,
-    result: 'loss', // Sempre perda para quem resigna
-    endedAt: Date.now(),
+    myId: myId,
+    winnerColor: winningPlayerColor,
+    status: 'resigned', // Status da partida
+    roomCode: roomCode
   });
 
-  showGameOver('Você desistiu!', `O jogador ${COLOR_TRANSLATIONS[winnerColor]} venceu a partida.`);
+  showGameOver('Você desistiu!', `O jogador ${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[winningPlayerColor]} venceu a partida.`);
 }
 
 /**
@@ -1086,7 +1087,7 @@ function showGameOver(title, msg) {
   if (titleEl) titleEl.textContent = title;
   if (msgEl) msgEl.textContent = msg;
   if (iconEl) {
-    iconEl.textContent = title.includes('Vitória') ? '🏆'
+    iconEl.textContent = title.includes('Vitória') || title.includes('venceu') ? '🏆'
       : title.includes('desistiu') ? '🏳' : '🎲';
   }
 
@@ -1098,10 +1099,6 @@ function showGameOver(title, msg) {
 ===================================================== */
 
 const BOARD_SIZE = 15; // Ludo é 15x15 células
-
-// As PATH_COORDS, SAFE_CELLS_INDICES, HOME_PATHS, BASE_POSITIONS foram movidas
-// para dentro da LudoEngine como ENGINE_CONSTANTS para centralização.
-// São acessadas via `engine.PATH_COORDS` etc.
 
 let BOARD_CELLS_DOM = []; // Cache do DOM das células do tabuleiro
 
@@ -1129,8 +1126,8 @@ function buildBoardDOM() {
       if (zone) cell.classList.add('zone-' + zone);
 
       // Verifica se a célula é uma casa segura no caminho principal
-      const pathIdx = engine.PATH_COORDS.findIndex(coord => coord[0] === r && coord[1] === c);
-      if (pathIdx !== -1 && engine.SAFE_SQUARES.includes(pathIdx)) {
+      const pathIdx = window.LUDO_CONSTANTS.PATH_COORDS.findIndex(coord => coord[0] === r && coord[1] === c);
+      if (pathIdx !== -1 && window.LUDO_CONSTANTS.SAFE_SQUARES.includes(pathIdx)) {
         cell.classList.add('safe');
       }
 
@@ -1157,10 +1154,10 @@ function getCellZone(r, c) {
   if (r >= 6 && r <= 8 && c >= 6 && c <= 8) return 'center';
 
   // Corredores finais (6 casas)
-  if (r === 6 && c >= 1 && c <= 6) return 'red';    // Corredor (vermelho) horizontal
-  if (r >= 1 && r <= 6 && c === 7) return 'blue';   // Corredor (azul) vertical
-  if (r === 8 && c >= 8 && c <= 13) return 'green'; // Corredor (verde) horizontal
-  if (r >= 8 && r <= 13 && c === 7) return 'yellow';  // Corredor (amarelo) vertical
+  if (r === 7 && c >= 1 && c <= 5) return 'red';    // Corredor (vermelho) horizontal
+  if (r >= 1 && r <= 5 && c === 7) return 'blue';   // Corredor (azul) vertical
+  if (r === 7 && c >= 9 && c <= 13) return 'green'; // Corredor (verde) horizontal
+  if (r >= 9 && r <= 13 && c === 7) return 'yellow';  // Corredor (amarelo) vertical
 
   return 'neutral'; // Trilhas neutras do caminho principal
 }
@@ -1190,13 +1187,13 @@ function renderBoard() {
       let coords = null;
       if (pawn.pos === -1) {
         // Peça na base
-        coords = engine.BASE_POSITIONS[player.color]?.[pawnIdx];
+        coords = window.LUDO_CONSTANTS.BASE_POSITIONS[player.color]?.[pawnIdx];
       } else if (pawn.homeStep !== -1) {
         // Peça no corredor final
-        coords = engine.HOME_PATHS[player.color]?.[pawn.homeStep];
+        coords = window.LUDO_CONSTANTS.HOME_PATHS[player.color]?.[pawn.homeStep];
       } else {
         // Peça no tabuleiro principal (PATH_COORDS)
-        coords = engine.PATH_COORDS[pawn.pos];
+        coords = window.LUDO_CONSTANTS.PATH_COORDS[pawn.pos];
       }
 
       if (!coords || !BOARD_CELLS_DOM[coords[0]] || !BOARD_CELLS_DOM[coords[0]][coords[1]]) {
@@ -1214,7 +1211,7 @@ function renderBoard() {
       pawnEl.className = `pawn ${player.color}`;
       pawnEl.dataset.playerColor = player.color; // Adiciona data-set para facilitar identificação
       pawnEl.dataset.pawnIdx = pawnIdx;
-      pawnEl.textContent = PIECES_SYMBOLS[player.color] || (pawnIdx + 1); // Exibe símbolo ou número do peão
+      pawnEl.textContent = window.LUDO_CONSTANTS.PIECES_SYMBOLS[player.color] || (pawnIdx + 1); // Exibe símbolo ou número do peão
 
       // Adiciona classe de "movable" se for a vez do jogador e a peça puder mover
       if (!isSpectator && isMyTurn() && engine.phase === 'move') {
@@ -1226,6 +1223,17 @@ function renderBoard() {
         }
       }
       cellElement.appendChild(pawnEl);
+
+      // Verifica se há múltiplas peças na mesma casa
+      const pawnsOnCell = cellElement.querySelectorAll('.pawn');
+      if (pawnsOnCell.length > 1) {
+        pawnsOnCell.forEach((p, index) => {
+          p.style.setProperty('--overlap-size', `${index * 6}px`);
+        });
+        cellElement.classList.add('has-multiple-pawns');
+      } else {
+        cellElement.classList.remove('has-multiple-pawns');
+      }
     });
   });
 }
@@ -1269,7 +1277,6 @@ function renderPlayersList() {
   });
 }
 
-
 /**
  * Atualiza a barra de status com mensagens do jogo.
  */
@@ -1284,7 +1291,7 @@ function renderStatusBar() {
   const isMyTurnNow = isMyTurn();
 
   if (isSpectator) {
-    bar.textContent = `👁 Assistindo — Vez de ${engine.activePlayer.name} (${COLOR_TRANSLATIONS[engine.activePlayer.color]})`;
+    bar.textContent = `👁 Assistindo — Vez de ${engine.activePlayer.name} (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[engine.activePlayer.color]})`;
     if (btnRoll) btnRoll.classList.add('hidden'); // Esconde o botão de rolar para espectadores
     return;
   }
@@ -1295,22 +1302,36 @@ function renderStatusBar() {
   }
 
   if (engine.status === 'finished') {
-    bar.textContent = `Partida encerrada! Vencedor: ${engine.activePlayer.name} (${COLOR_TRANSLATIONS[engine.activePlayer.color]}) 🏆`;
+    bar.textContent = `Partida encerrada! Vencedor: ${engine.activePlayer.name} (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[engine.activePlayer.color]}) 🏆`;
     bar.classList.remove('your-turn');
     if (btnRoll) btnRoll.classList.add('hidden'); // Esconde o botão de rolar ao final do jogo
   } else if (isMyTurnNow) {
     if (engine.phase === 'roll') {
       if (btnRoll) btnRoll.disabled = false;
-      bar.textContent = `Sua vez (${COLOR_TRANSLATIONS[myColor]}) — Role o dado!`;
+      bar.textContent = `Sua vez (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[myColor]}) — Role o dado!`;
       bar.classList.add('your-turn');
     } else { // phase === 'move'
       if (btnRoll) btnRoll.disabled = true; // Desabilita roll após rolar
-      bar.textContent = `Sua vez (${COLOR_TRANSLATIONS[myColor]}) — Escolha uma peça para mover ${engine.diceValue} casas.`;
+      // Verifica se há movimentos válidos, se não houver, indica que dado é 0
+      const validMovesAvailable = engine.getValidMoves().length > 0;
+      bar.textContent = `Sua vez (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[myColor]}) — Escolha uma peça para mover ${engine.diceValue} casas.`;
+      if (!validMovesAvailable && engine.diceValue > 0) { // Se não há movimentos e ainda é fase move, significa que não tem peça para mover
+        bar.textContent = `Sua vez (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[myColor]}) — Sem movimentos válidos para dado ${engine.diceValue}.`;
+        setTimeout(() => { // Automaticamente passa o turno se não houver movimentos válidos
+          engine.nextTurn();
+          const serializedState = engine.serialize();
+          if (gameMode === 'multiplayer' && roomRef) {
+            roomRef.update({ state: serializedState });
+          }
+          renderGame();
+          if (engine.activePlayer.isAI) setTimeout(doAITurn, 1500); // Se o próximo for IA, agendar.
+        }, 2000); // 2 segundos para o jogador ver a mensagem
+      }
       bar.classList.add('your-turn');
     }
   } else {
     // Vez de outro jogador (humano ou IA que ainda não começou o turno)
-    bar.textContent = `Vez de ${engine.activePlayer.name} (${COLOR_TRANSLATIONS[engine.activePlayer.color]})`;
+    bar.textContent = `Vez de ${engine.activePlayer.name} (${window.LUDO_CONSTANTS.COLOR_TRANSLATIONS[engine.activePlayer.color]})`;
     bar.classList.remove('your-turn');
     if (btnRoll) btnRoll.disabled = true;
   }
@@ -1377,6 +1398,9 @@ async function openHistoryScreen() {
       `<span class='stat stat-draw'>🤝 Empates: ${draws}</span>`; // Adapte draw se não for aplicável no Ludo.
 
     if (listEl) listEl.innerHTML = '';
+    // Sort games by endedAt descending
+    games.sort((a,b) => b.endedAt - a.endedAt);
+
     games.forEach(game => {
       const card = document.createElement('div');
       card.className = 'history-card';
@@ -1386,7 +1410,7 @@ async function openHistoryScreen() {
       const resText = resTextMap[game.result] || game.result;
 
       let opponentNames = game.players
-        .filter(p => p.id !== currentUser.uid && !p.isAI)
+        .filter(p => !p.isAI && p.id !== currentUser.uid && p.id !== null)
         .map(p => escapeHtml(p.name));
       let aiOpponentCount = game.players.filter(p => p.isAI).length;
 
@@ -1397,9 +1421,12 @@ async function openHistoryScreen() {
       if (aiOpponentCount > 0) {
         opponentDisplay += (opponentNames.length > 0 ? ' + ' : 'vs ') + `${aiOpponentCount} IA(s)`;
       }
-      if (!opponentDisplay) { // Se não tiver nem humano nem IA (ex: só você no modo AI)
+      if (!opponentDisplay && game.mode === 'ai') { // Se não tiver nem humano nem IA (ex: só você no modo AI)
           opponentDisplay = 'vs IA'; // Garante que algo seja exibido
+      } else if (!opponentDisplay) {
+        opponentDisplay = 'Outros jogadores';
       }
+
 
       const date = new Date(game.endedAt).toLocaleDateString('pt-BR', {
         day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'
@@ -1418,7 +1445,6 @@ async function openHistoryScreen() {
           <span class="history-date">${date}</span>
         </div>
       `;
-      // Ludo não tem replay, então o botão de replay é omitido.
       if (listEl) listEl.appendChild(card);
     });
   } catch (e) {

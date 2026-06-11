@@ -3,223 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ludo Online</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Adicionando fontes se necessário, seguindo o padrão do Xadrez -->
+    <title>🎲 Ludo Online</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="shortcut icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABAAgAAFgAAACgAAAAQAAAAIAAAAAEAAQAAAAAAQAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAIpCAgAAAAAAC0xMQAAAAAACUhIQAAAAAAEEBAQAAAAAAFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBsW4DAAAAALCvsLcAAAAAsru8sQAAAACHgoKCgoKCgoKC/h4eHgAAAACZmZmZmZmZmbmNjY2Nh/mZmZkAAAAA/mZmZmb+mpqampqamtrb29vY29va3n5+fn4eHh4eH/h4eHh4cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO3gAIAA==" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-header">
-        <div class="header-left">
-            <span class="header-logo">🎲 Ludo Online</span>
-        </div>
+    <header class="app-header">
+        <a href="#lobby" class="header-logo"><span class="game-icon">🎲</span> Ludo Online</a>
         <div class="header-right">
-            <div class="user-info">
-                <img id="header-photo" class="user-avatar hidden" alt="Avatar">
-                <div id="header-initials" class="user-avatar user-initials"></div>
+            <div class="profile-info">
+                <div class="profile-avatar">
+                   <img id="header-photo" src="" alt="Foto de Perfil" class="header-photo hidden">
+                   <span id="header-initials">?</span>
+                </div>
                 <span id="header-username" class="header-username">Visitante</span>
             </div>
-            <button id="btn-logout" class="btn btn-secondary btn-small hidden">Sair</button>
+            <button id="btn-logout" class="btn btn-secondary btn-small">Sair</button>
         </div>
-    </div>
+    </header>
 
     <main>
-        <!-- SCREEN: AUTH (Login/Cadastro) -->
+        <!-- AUTH SCREEN -->
         <section id="screen-auth" class="screen active">
             <div class="auth-container">
                 <div class="logo">
-                    <h1>🎲 Ludo Online</h1>
-                    <p>Faça login para jogar</p>
+                     <span class="game-icon">🎲</span>
+                    <h1>Ludo Online</h1>
                 </div>
                 <div class="auth-tabs">
                     <button class="auth-tab active" data-tab="login">Entrar</button>
                     <button class="auth-tab" data-tab="register">Cadastrar</button>
                 </div>
-                <div class="tab-content">
-                    <div id="tab-login">
-                        <button id="btn-login-google" class="btn btn-primary btn-google">
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon"> Entrar com Google
-                        </button>
-                        <div class="or-separator">ou com e-mail</div>
-                        <input type="email" id="login-email" placeholder="E-mail">
-                        <input type="password" id="login-password" placeholder="Senha">
-                        <button id="btn-login-email" class="btn btn-primary">Entrar</button>
-                        <button id="btn-guest" class="btn btn-secondary">Entrar como visitante</button>
+
+                <div id="tab-login" class="auth-form-panel">
+                    <p id="auth-error" class="auth-error"></p>
+                    <button id="btn-login-google" class="btn btn-google btn-icon">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Entrar com Google
+                    </button>
+                    <div class="auth-separator">ou com e-mail</div>
+                    <div class="input-group">
+                        <input type="email" id="login-email" class="input-field" placeholder="E-mail">
                     </div>
-                    <div id="tab-register" class="hidden">
-                        <button id="btn-register-google" class="btn btn-primary btn-google">
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon"> Cadastrar com Google
-                        </button>
-                        <div class="or-separator">ou com e-mail</div>
-                        <input type="text" id="reg-name" placeholder="Nome">
-                        <input type="email" id="reg-email" placeholder="E-mail">
-                        <input type="password" id="reg-password" placeholder="Senha">
-                        <button id="btn-register" class="btn btn-primary">Criar conta</button>
+                    <div class="input-group">
+                        <input type="password" id="login-password" class="input-field" placeholder="Senha">
                     </div>
+                    <button id="btn-login-email" class="btn btn-primary">Entrar</button>
+                    <button id="btn-guest" class="btn btn-secondary btn-small" style="margin-top: 15px;">Entrar como Visitante</button>
                 </div>
-                <div id="auth-error" class="error-message"></div>
+
+                <div id="tab-register" class="auth-form-panel hidden">
+                    <p id="auth-error-register" class="auth-error"></p>
+                    <button id="btn-register-google" class="btn btn-google btn-icon">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Cadastrar com Google
+                    </button>
+                    <div class="auth-separator">ou com e-mail</div>
+                    <div class="input-group">
+                        <input type="text" id="reg-name" class="input-field" placeholder="Nome de Usuário">
+                    </div>
+                    <div class="input-group">
+                        <input type="email" id="reg-email" class="input-field" placeholder="E-mail">
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="reg-password" class="input-field" placeholder="Senha (mín. 6 caracteres)">
+                    </div>
+                    <button id="btn-register" class="btn btn-primary">Criar conta</button>
+                </div>
             </div>
         </section>
 
-        <!-- SCREEN: LOBBY -->
+        <!-- LOBBY SCREEN -->
         <section id="screen-lobby" class="screen">
             <div class="lobby-container">
-                <div class="lobby-tabs">
-                    <button class="lobby-tab active mode-btn" data-mode="multiplayer">
+                <div class="lobby-header">
+                    <h2>Crie ou Junte-se a uma Partida</h2>
+                </div>
+
+                <div class="mode-selection">
+                    <button class="mode-btn active" data-mode="multiplayer">
                         <span class="mode-icon">👥</span>
-                        <span class="mode-desc">Multijogador</span>
-                        <span class="mode-info">Jogue contra amigos online</span>
+                        <span class="mode-title">Multijogador</span>
+                        <span class="mode-desc">Jogue contra amigos</span>
                     </button>
-                    <button class="lobby-tab mode-btn" data-mode="ai">
+                    <button class="mode-btn" data-mode="ai">
                         <span class="mode-icon">🤖</span>
-                        <span class="mode-desc">VS Computador</span>
-                        <span class="mode-info">Desafie a inteligência artificial</span>
+                        <span class="mode-title">vs Computador</span>
+                        <span class="mode-desc">Jogue contra a IA</span>
                     </button>
                 </div>
 
-                <div id="panel-multiplayer" class="lobby-panel">
-                    <h3>Criar Partida</h3>
-                    <p>Número de jogadores humanos (você incluído):</p>
-                    <div class="player-count-btns">
-                        <button class="btn btn-outline count-btn active" data-count="2">2 Jogadores</button>
-                        <button class="btn btn-outline count-btn" data-count="3">3 Jogadores</button>
-                        <button class="btn btn-outline count-btn" data-count="4">4 Jogadores</button>
-                    </div>
-                    <button id="btn-create" class="btn btn-primary">Criar Partida</button>
+                <div class="game-setup-panel">
+                    <!-- Painel Multiplayer -->
+                    <div id="panel-multiplayer" class="panel-section">
+                        <h3>Criar Partida</h3>
+                        <div class="player-count-btns">
+                            <span>Jogadores Humanos (incluindo você):</span>
+                            <button class="btn btn-secondary btn-small active" data-players="2">2</button>
+                            <button class="btn btn-secondary btn-small" data-players="3">3</button>
+                            <button class="btn btn-secondary btn-small" data-players="4">4</button>
+                        </div>
+                        <button id="btn-create" class="btn btn-primary">Criar Partida</button>
 
-                    <div class="or-separator">ou entre em uma sala</div>
-                    <div class="join-room-section">
-                        <input type="text" id="input-room" placeholder="Código da sala" maxlength="6">
-                        <button id="btn-join" class="btn btn-secondary">Entrar</button>
+                        <div class="auth-separator">ou entrar em uma sala</div>
+                        <div class="input-room-group">
+                            <input type="text" id="input-room" class="input-field" placeholder="Código da Sala">
+                            <button id="btn-join" class="btn btn-primary">Entrar</button>
+                        </div>
+                        <div class="auth-separator">ou assista uma partida</div>
+                        <div class="input-room-group">
+                            <input type="text" id="input-spectate" class="input-field" placeholder="Código para Assistir (6 dígitos)">
+                            <button id="btn-spectate" class="btn btn-secondary">👁 Assistir</button>
+                        </div>
+                        <p id="lobby-error" class="lobby-error"></p>
                     </div>
 
-                    <div class="or-separator">ou assista uma partida</div>
-                    <div class="spectate-room-section">
-                        <input type="text" id="input-spectate" placeholder="Código da sala para assistir" maxlength="6">
-                        <button id="btn-spectate" class="btn btn-secondary">👁 Assistir</button>
+                    <!-- Painel VS IA -->
+                    <div id="panel-ai" class="panel-section hidden">
+                        <h3>vs Computador</h3>
+                        <div class="ai-count-btns">
+                            <span>Quantidade de IAs:</span>
+                            <button class="btn btn-secondary btn-small active" data-ais="1">1 IA</button>
+                            <button class="btn btn-secondary btn-small" data-ais="2">2 IAs</button>
+                            <button class="btn btn-secondary btn-small" data-ais="3">3 IAs</button>
+                        </div>
+                        <button id="btn-start-ai" class="btn btn-primary">Iniciar Partida</button>
                     </div>
                 </div>
 
-                <div id="panel-ai" class="lobby-panel hidden">
-                    <h3>Jogar contra IA</h3>
-                    <p>Número de computadores:</p>
-                    <div class="ai-count-btns">
-                        <button class="btn btn-outline ai-count-btn active" data-ai="1">1 IA</button>
-                        <button class="btn btn-outline ai-count-btn" data-ai="2">2 IAs</button>
-                        <button class="btn btn-outline ai-count-btn" data-ai="3">3 IAs</button>
-                    </div>
-                    <button id="btn-start-ai" class="btn btn-primary">Iniciar Partida</button>
-                </div>
-                <div id="lobby-error" class="error-message"></div>
-
-                <div class="lobby-history-links">
-                    <button id="btn-history" class="btn btn-link">Meu Histórico</button>
-                    <button id="btn-live-games" class="btn btn-link">Partidas ao vivo</button>
+                <div class="lobby-quick-links">
+                    <button id="btn-history" class="btn btn-small btn-ghost">📋 Seu Histórico</button>
+                    <button id="btn-live-games" class="btn btn-small btn-ghost">🌐 Partidas Ao Vivo</button>
                 </div>
             </div>
         </section>
 
-        <!-- SCREEN: WAITING ROOM -->
+        <!-- WAITING SCREEN -->
         <section id="screen-waiting" class="screen">
             <div class="waiting-container">
-                <h2>Aguardando oponentes...</h2>
-                <p>Compartilhe o código da sala com seus amigos:</p>
+                <h2>Aguardando Jogadores...</h2>
+                <p>Compartilhe o código com seus amigos:</p>
                 <div class="room-code-box">
-                    <span id="display-room-code" class="room-code">ABCDEF</span>
-                    <button id="btn-copy" class="btn btn-secondary btn-small">📋 Copiar</button>
-                    <span id="copy-feedback" class="copy-feedback-message"></span>
+                    <span id="display-room-code"></span>
+                    <button id="btn-copy" class="btn btn-secondary btn-small">Copiar</button>
                 </div>
-                <p class="mt-20">Jogadores na sala: <span id="waiting-count">1</span>/<span id="waiting-total">2</span></p>
-                <div id="waiting-players-list" class="waiting-players">
-                    <!-- Lista de jogadores será populada via JS -->
-                </div>
-                <p class="small-text">O jogo começará automaticamente assim que todos os jogadores se juntarem.</p>
-                <button id="btn-cancel" class="btn btn-danger mt-30">Cancelar</button>
-            </div>
-        </section>
+                <p id="copy-feedback" class="copy-feedback"></p>
 
-        <!-- SCREEN: GAME (Ludo Game) -->
-        <section id="screen-game" class="screen game-layout">
-            <div class="game-sidebar left-sidebar">
-                <div class="player-card" id="card-top">
-                    <div class="player-avatar user-initials">IA</div>
-                    <span id="label-top" class="player-name">Oponente (IA)</span>
-                </div>
+                <div class="spinner"></div>
 
-                <div class="log-box">
-                    <h4>Registros da Partida</h4>
-                    <div id="log-entries" class="log-entries">
-                        <p>Conectando...</p>
+                <div class="waiting-players">
+                    <p id="waiting-players-count">Esperando X de Y jogadores humanos.</p>
+                    <div id="waiting-players-list" class="waiting-players-list">
+                        <!-- Itens dos jogadores aqui -->
+                        <div class="waiting-player-row">
+                          <span class="player-color-dot color-red"></span> Você (Vermelho)
+                        </div>
                     </div>
                 </div>
 
-                <div id="spectator-bar" class="status-bar spectator-bar hidden">
-                    👁 Você está assistindo esta partida
+                <div class="waiting-actions">
+                    <button id="btn-cancel" class="btn btn-danger">Cancelar</button>
                 </div>
+            </div>
+        </section>
+
+        <!-- GAME SCREEN LUDO -->
+        <section id="screen-game" class="screen">
+          <div class="game-layout">
+            <div class="game-sidebar">
+              <div id="players-list" class="players-list">
+                <!-- Player cards dynamically generated -->
+              </div>
+              <div class="log-box">
+                <h3>Eventos</h3>
+                <div id="log-entries" class="log-entries">
+                  <!-- Game log entries dynamically generated -->
+                </div>
+              </div>
             </div>
 
             <div class="board-area">
-                <div class="game-board-container">
-                    <div id="ludo-board" class="ludo-board">
-                        <!-- O tabuleiro de Ludo será renderizado aqui via JS -->
-                    </div>
-                </div>
-                <div class="dice-area">
-                    <span id="dice-display" class="dice-display">🎲</span>
-                    <button id="btn-roll" class="btn btn-primary btn-large">Lançar Dado</button>
-                </div>
-                <div id="status-bar" class="status-bar"></div>
-            </div>
+              <div id="status-bar" class="status-bar">Conectando...</div>
 
-            <div class="game-sidebar right-sidebar">
-                <div class="player-card" id="card-bottom">
-                    <div class="player-avatar user-initials"></div>
-                    <span id="label-bottom" class="player-name">Você (Vermelho)</span>
+              <div id="spectator-bar" class="spectator-bar hidden">
+                <!-- Message for spectators -->
+              </div>
+
+              <div class="ludo-board-wrapper">
+                <div id="ludo-board" class="ludo-board">
+                  <!-- Ludo board cells dynamically generated -->
                 </div>
-                <div id="players-list" class="players-list">
-                    <!-- Lista de jogadores com pontuação -->
-                </div>
-                <div class="game-actions">
-                    <button id="btn-resign" class="btn btn-danger">🏳 Desistir</button>
-                    <button id="btn-new-game" class="btn btn-secondary hidden">Nova Partida</button>
-                    <button id="btn-back-lobby" class="btn btn-secondary hidden">← Lobby</button>
-                </div>
+              </div>
+
+              <div class="dice-area">
+                <button id="btn-roll" class="btn btn-primary">🎲 Rolar Dado</button>
+                <div id="dice-display" class="dice-display">🎲</div>
+              </div>
+
+              <div class="game-actions">
+                <button id="btn-resign" class="btn btn-danger">Desistir</button>
+                <button id="btn-new-game" class="btn btn-primary hidden">Nova Partida</button>
+                <button id="btn-back-lobby" class="btn btn-secondary hidden">← Voltar</button>
+              </div>
             </div>
+          </div>
         </section>
 
-        <!-- SCREEN: HISTORY -->
-        <section id="screen-history" class="screen">
-            <div class="history-container">
-                <div class="history-header">
-                    <button id="btn-history-back" class="btn btn-secondary btn-icon">← Voltar</button>
-                    <h2>Meu Histórico de Ludo</h2>
-                </div>
-                <div class="history-stats" id="ludo-history-stats">
-                    <!-- Stats aqui -->
-                </div>
-                <div id="ludo-history-list" class="history-list">
-                    <div class="history-loading">Carregando...</div>
-                </div>
+        <!-- LUDO HISTORY SCREEN -->
+        <section id="screen-ludo-history" class="screen">
+          <div class="history-container">
+            <div class="history-header">
+              <button id="btn-history-back" class="btn btn-secondary btn-small">← Voltar</button>
+              <h2>Seu Histórico de Ludo</h2>
             </div>
+            <div id="ludo-history-stats" class="history-stats">
+              <!-- Histórico de estatísticas (vitórias, derrotas, empates) -->
+            </div>
+            <div id="ludo-history-list" class="history-list">
+              <!-- Lista de partidas de Ludo -->
+            </div>
+          </div>
         </section>
 
-        <!-- SCREEN: LIVE GAMES -->
-        <section id="screen-live-games" class="screen">
-            <div class="history-container">
-                <div class="history-header">
-                    <button id="btn-live-games-back" class="btn btn-secondary btn-icon">← Voltar</button>
-                    <h2>Partidas de Ludo ao Vivo</h2>
-                </div>
-                <div id="ludo-live-games-list" class="history-list">
-                    <div class="history-loading">Carregando...</div>
-                </div>
+        <!-- LUDO LIVE GAMES SCREEN -->
+        <section id="screen-ludo-live-games" class="screen">
+          <div class="history-container">
+            <div class="history-header">
+              <button id="btn-live-games-back" class="btn btn-secondary btn-small">← Voltar</button>
+              <h2>Partidas de Ludo Ao Vivo</h2>
             </div>
+            <div id="ludo-live-games-list" class="history-list">
+              <!-- Lista de partidas de Ludo ao vivo -->
+            </div>
+          </div>
         </section>
 
-        <!-- MODAL: GAME OVER -->
+        <!-- MODAL GAME OVER -->
         <div id="modal-gameover" class="modal hidden">
             <div class="modal-card">
                 <span id="gameover-icon" class="gameover-icon">🏆</span>
@@ -239,10 +258,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
 
     <!-- Meus scripts -->
+    <script src="ludo_constants.js"></script> <!-- NOVO ARQUIVO DE CONSTANTES -->
     <script src="auth.js"></script>
     <script src="ludoengine.js"></script>
     <script src="ludoai.js"></script>
-    <script src="history.js"></script> <!-- Agora history.js lida com ambos xadrez e ludo -->
+    <script src="history.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

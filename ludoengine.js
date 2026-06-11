@@ -2,24 +2,6 @@
    LUDO ENGINE — lógica completa do jogo
 ===================================================== */
 
-const LUDO_COLORS = ['red', 'blue', 'green', 'yellow'];
-// tradução para exibição, mas o motor usa as strings 'red', 'blue', etc.
-const COLOR_TRANSLATIONS = {
-  red: 'Vermelho', blue: 'Azul', green: 'Verde', yellow: 'Amarelo'
-};
-
-const PIECES_PER = 4; // Ludo tem 4 peças por jogador
-const BOARD_STEPS = 52; // Número de casas no caminho principal
-// Posições de entrada no caminho principal para cada cor
-const ENTRY_POS = { red: 0, blue: 13, green: 26, yellow: 39 };
-
-// Casas seguras no tabuleiro principal (índices da PATH_COORDS)
-// Estes são os índices de PATH_COORDS (0-51)
-const SAFE_SQUARES = [0, 8, 13, 21, 26, 34, 39, 47];
-
-// Posição no tabuleiro principal ANTES de entrar no corredor final
-const FINAL_ENTRY_BOARD_POS = { red: 50, blue: 11, green: 24, yellow: 37 }; // Corrigido para corresponder aos índices do PATH_COORDS
-
 class LudoEngine {
   constructor() {
     this.reset();
@@ -35,7 +17,19 @@ class LudoEngine {
     this.winner = null; // Cor do jogador vencedor
     this.extraTurn = false; // Indica se o jogador ganhou um turno extra
     this.log = []; // Histórico de eventos do jogo
-    this.PIECES_PER = PIECES_PER; // Garante que a constante esteja disponível na instância
+    this.PIECES_PER = window.LUDO_CONSTANTS.PIECES_PER; // Garante que a constante esteja disponível na instância
+
+    // Adiciona as constantes do Ludo à instância para fácil acesso interno, se necessário
+    this.LUDO_COLORS = window.LUDO_CONSTANTS.LUDO_COLORS;
+    this.COLOR_TRANSLATIONS = window.LUDO_CONSTANTS.COLOR_TRANSLATIONS;
+    this.BOARD_STEPS = window.LUDO_CONSTANTS.BOARD_STEPS;
+    this.ENTRY_POS = window.LUDO_CONSTANTS.ENTRY_POS;
+    this.SAFE_SQUARES = window.LUDO_CONSTANTS.SAFE_SQUARES;
+    this.FINAL_ENTRY_BOARD_POS = window.LUDO_CONSTANTS.FINAL_ENTRY_BOARD_POS;
+    this.PATH_COORDS = window.LUDO_CONSTANTS.PATH_COORDS;
+    this.BASE_POSITIONS = window.LUDO_CONSTANTS.BASE_POSITIONS;
+    this.HOME_PATHS = window.LUDO_CONSTANTS.HOME_PATHS;
+    this.CENTER_CELL = window.LUDO_CONSTANTS.CENTER_CELL;
   }
 
   // Configura os jogadores para uma nova partida
@@ -106,22 +100,35 @@ class LudoEngine {
         const newBoardPos = currentBoardPos + dice;
 
         // Verifica se a peça entra no corredor final
-        if (newBoardPos >= FINAL_ENTRY_BOARD_POS[player.color] && currentBoardPos < FINAL_ENTRY_BOARD_POS[player.color]) {
-          const stepsIntoFinal = newBoardPos - FINAL_ENTRY_BOARD_POS[player.color] -1;
+        if (newBoardPos >= this.FINAL_ENTRY_BOARD_POS[player.color] && currentBoardPos < this.FINAL_ENTRY_BOARD_POS[player.color]) {
+          const stepsIntoFinal = newBoardPos - this.FINAL_ENTRY_BOARD_POS[player.color] -1;
            // O peão precisa ter a cor correta para entrar no seu corredor final
-           // A posição 50 do tabuleiro principal é o passo 0 do corredor final de RED
-           // A posição 11 do tabuleiro principal é o passo 0 do corredor final de BLUE
-           // ...
           if (stepsIntoFinal < 6) { // Pode entrar no corredor final
             validPawns.push(idx);
           }
         }
         // Permanece no tabuleiro principal (não passou do limite)
-        else if (newBoardPos < BOARD_STEPS) {
+        else if (newBoardPos < this.BOARD_STEPS) {
           validPawns.push(idx);
         }
-        else if (newBoardPos === BOARD_STEPS + (ENTRY_POS[player.color])) { // Se a peça der a volta completa e parar na "saída" do loop
-            validPawns.push(idx);
+        // Se a peça der a volta completa e parar na "saída" do loop,
+        // o Ludo Engine original não permitia essa volta simples, mas sim entrar na trilha final.
+        // Se newBoardPos for exatamente BOARD_STEPS + ENTRY_POS[player.color]
+        // isso significaria que ele deu a volta completa e parou na sua casa inicial de entrada, que para o ludo é um movimento inválido.
+        // A lógica do jogo é entrar na trilha final.
+        // Corrigido para verificar se o movimento ultrapassa o BOARD_STEPS sem entrar na HOME_PATH
+        else if (newBoardPos >= this.BOARD_STEPS && !(newBoardPos >= this.FINAL_ENTRY_BOARD_POS[player.color] && currentBoardPos < this.FINAL_ENTRY_BOARD_POS[player.color])) {
+            // Este `else if` foi removido ou ajustado para a lógica correta do ludo, onde o objetivo é entrar na trilha final e não "dar a volta total"
+            // Se ultrapassa BOARD_STEPS e não for para a trilha final, normalmente não é um movimento válido, a menos que as regras sejam customizadas.
+            // A lógica atual de newBoardPos >= FINAL_ENTRY_BOARD_POS deve cobrir a entrada na trilha final.
+            // Qualquer movimento que passe do final do tabuleiro principal e não entre na trilha final é inválido.
+            // Para ter certeza, vamos adicionar um `else if` que representa um movimento que "ultrapassa" a contagem total de passos sem entrar na home path
+             let effectiveNewBoardPos = newBoardPos % this.BOARD_STEPS;
+             if (effectiveNewBoardPos < this.BOARD_STEPS && effectiveNewBoardPos >= this.ENTRY_POS[player.color] ) { // Se a peça der a volta completa e parar na "saída" do loop
+                // this is a complex case, typically player can't pass their entry pos unless it's to enter home path
+                // For simplicity, lets assume if it exceeds BOARD_STEPS, it's invalid unless it's to enter its home path
+                // this branch is generally invalid for standard Ludo
+             }
         }
       }
       // Peça no corredor final
@@ -151,13 +158,13 @@ class LudoEngine {
 
     // Ações baseadas na posição do peão
     if (pawn.pos === -1 && dice === 6) { // Peça na base, rola 6: sai da base
-      pawn.pos = ENTRY_POS[player.color];
+      pawn.pos = this.ENTRY_POS[player.color];
       this.logEvent(`${player.name} tirou a peça ${pawnIdx + 1} da base.`, player.color);
       captured = this._checkCapture(player.color, pawn.pos); // Verifica captura ao sair da base
       moved = true;
     } else if (pawn.homeStep !== -1) { // Peça no corredor final
       const newHomeStep = pawn.homeStep + dice;
-      if (newHomeStep < 6) { // Se não ultrapassar o final
+      if (newHomeStep < 6) { // Se não ultrapassar o final (0-5)
         pawn.homeStep = newHomeStep;
         this.logEvent(`${player.name} moveu a peça ${pawnIdx + 1} no corredor final.`, player.color);
         moved = true;
@@ -170,12 +177,12 @@ class LudoEngine {
       }
     } else if (pawn.pos !== -1) { // Peça no tabuleiro principal
       const currentBoardPos = pawn.pos;
-      const finalEntryPos = FINAL_ENTRY_BOARD_POS[player.color];
+      const finalEntryPos = this.FINAL_ENTRY_BOARD_POS[player.color];
       let newBoardPos = (currentBoardPos + dice);
 
       // Peça entra no corredor final
       if (newBoardPos >= finalEntryPos && currentBoardPos < finalEntryPos) {
-        const stepsIntoFinal = newBoardPos - finalEntryPos - 1; // Posição no corredor (0-5)
+        const stepsIntoFinal = newBoardPos - finalEntryPos -1; // Posição no corredor (0-5)
         if (stepsIntoFinal < 6) {
           pawn.pos = -2; // Indica que está no corredor final
           pawn.homeStep = stepsIntoFinal;
@@ -190,21 +197,24 @@ class LudoEngine {
         }
       }
       // Peça permanece no tabuleiro principal
-      else if (newBoardPos < BOARD_STEPS) {
-        pawn.pos = newBoardPos;
+      else if (newBoardPos < this.BOARD_STEPS) {
+        pawn.pos = newBoardPos; // move para a nova posição
         captured = this._checkCapture(player.color, pawn.pos);
         this.logEvent(`${player.name} moveu a peça ${pawnIdx + 1}.`, player.color);
         moved = true;
       }
+      // Se não entrou no corredor final e ultrapassou BOARD_STEPS, o movimento é inválido
     }
 
     if (!moved) {
       this.logEvent(`Movimento inválido para peça ${pawnIdx + 1}.`, 'red');
-      return false;
+      return false; // Retorna false se o movimento não for permitido
     }
 
     // Regras de turno extra (se não tiver finalizado uma peça)
+    // Se tirou 6, ganha turno extra
     if (dice === 6) this.extraTurn = true;
+    // Se capturou, ganha turno extra
     if (captured) this.extraTurn = true;
 
     this.phase = 'roll'; // Após mover, volta para a fase de rolar o dado
@@ -227,7 +237,7 @@ class LudoEngine {
 
   // Verifica e realiza a captura de peças de outras cores na mesma casa
   _checkCapture(movingColor, pos) {
-    if (SAFE_SQUARES.includes(pos)) return false; // Não captura em casas seguras (estrela)
+    if (this.SAFE_SQUARES.includes(pos)) return false; // Não captura em casas seguras (estrela)
 
     let captured = false;
     this.players.forEach(otherPlayer => {
@@ -239,7 +249,7 @@ class LudoEngine {
         // não estiver no corredor final, e não estiver finalizada.
         if (otherPawn.pos === pos && otherPawn.homeStep === -1 && !otherPawn.finished) {
           otherPawn.pos = -1; // Volta para a base
-          this.logEvent(`${COLOR_TRANSLATIONS[movingColor]} capturou uma peça de ${COLOR_TRANSLATIONS[otherPlayer.color]}!`, movingColor);
+          this.logEvent(`${this.COLOR_TRANSLATIONS[movingColor]} capturou uma peça de ${this.COLOR_TRANSLATIONS[otherPlayer.color]}!`, movingColor);
           captured = true;
         }
       });
@@ -258,7 +268,7 @@ class LudoEngine {
 
   // Verifica se o jogador ativo venceu a partida (todas as peças no centro)
   _checkWinner() {
-    return this.activePlayer.score === PIECES_PER;
+    return this.activePlayer.score === this.PIECES_PER;
   }
 
   // Adiciona um evento ao histórico de log do jogo

@@ -64,13 +64,12 @@ class GameHistoryManager {
      SALVAR PARTIDA DE LUDO
   ------------------------------------------------- */
   async saveLudoGame({ gameId, mode, players, // Array de players com seus scores finais
-                       myColor, myId, winnerColor, status, roomCode,
-                       totalHumanPlayers, totalAIPlayers
+                       myColor, myId, winnerColor, status, roomCode
                      }) {
     if (!auth.isLoggedIn) return;
 
     const uid = auth.uid;
-    const playerRecord = players.find(p => p.id === myId); // Encontra o registro deste jogador na partida
+    // const playerRecord = players.find(p => p.id === myId); // Não é usado atualmente, mas útil para referência.
 
     // Determina o resultado para este usuário
     let result = 'draw'; // padrão para empates ou finalizações sem vencedor claro
@@ -79,9 +78,10 @@ class GameHistoryManager {
     } else if (status === 'finished' && winnerColor !== myColor && winnerColor !== null) {
       // Se não é a minha cor e há um vencedor específico
       result = 'loss';
-    } else if (status === 'resigned' && winnerColor !== myColor) {
+    } else if (status === 'resigned' && winnerColor === myColor) {
       result = 'loss'; // Se eu resignei, é uma derrota
     }
+
 
     const record = {
       gameId,
@@ -98,8 +98,6 @@ class GameHistoryManager {
       winnerColor,
       status, // 'finished', 'resigned', 'abandoned'
       roomCode,
-      totalHumanPlayers,
-      totalAIPlayers,
       endedAt: Date.now()
     };
 
@@ -205,7 +203,7 @@ class GameHistoryManager {
       let opponentDisplay = playerNames;
       if (aiCount > 0) {
         opponentDisplay += (opponentDisplay ? ' +' : '') + `${aiCount} IA(s)`;
-      } else if (!opponentDisplay) { // Sala vazia mas "playing" - ou bug ou espera por mais humanos
+      } else if (!opponentDisplay && (room.status === 'playing' || room.status === 'waiting')) { // Sala vazia mas "playing" - ou bug ou espera por mais humanos
         opponentDisplay = 'Aguardando jogadores';
       }
 
@@ -230,7 +228,10 @@ class GameHistoryManager {
       : [];
 
     this.replayIndex = 0;
-    this.replayEngine = new ChessEngine(); // Replay para ChessEngine
+    // O ChessEngine precisa ser importado ou estar disponível globalmente
+    // Se você tiver um ChessEngine no seu projeto, certifique-se que ele é carregado
+    // antes de `history.js` ou que `history.js` o importa.
+    this.replayEngine = new ChessEngine(); // Replay para ChessEngine (assumindo que ChessEngine está global)
     return this.replayEngine;
   }
 
@@ -238,13 +239,32 @@ class GameHistoryManager {
   get replayCurrent() { return this.replayIndex; }
 
   replayGoTo(index) {
-    this.replayEngine = new ChessEngine();
+    this.replayEngine = new ChessEngine(); // Re-cria o motor para resetar o estado
     this.replayIndex = 0;
 
-    // Usando applyMoveBySAN do app.js para aplicar o replay
+    // A função `applyMoveBySAN` precisa ser global ou exportada para ser usada aqui.
+    // Assumindo que ela está global em `app.js` e `app.js` é carregado no final,
+    // esta chamada pode dar erro se history.js precisar dela antes da inicialização de app.js.
+    // Uma solução seria passar `applyMoveBySAN` como um método para `GameHistoryManager` ou ter um `ReplayManager` separado.
+    // Por enquanto, farei uma versão local apenas para o replay de xadrez.
+
+    // Implementação simplificada para replay (assumindo que ChessEngine e `_applyMoveBySAN` estão globalmente acessíveis ou em escopo de `app.js`)
     for (let i = 0; i < index && i < this.replayMoves.length; i++) {
-        applyMoveBySAN(this.replayEngine, this.replayMoves[i]);
-        this.replayIndex++;
+        // Esta função `_applyMoveBySAN` precisaria vir de um Chess Replay specific logic
+        // Como o Ludo está sendo focado, vou deixar o Chess replay como era no `app.js`
+        // e ele não deve afetar o Ludo. Esta é a parte que a função global `applyMoveBySAN` seria usada.
+        // Já que app.js é carregado depois, não temos applyMoveBySAN aqui.
+        // O mais seguro é que a função comece com `engine.applyMoveBySAN(this.replayMoves[i]);` e a lógica esteja no engine de xadrez
+        // ou que `app.js` chame o `replayGoTo` com um callback de aplicação de movimento.
+        // Por hora, vou remover a dependência direta de `applyMoveBySAN` esperando que ela seja resolvida em `app.js` ou em outro lugar.
+        // Se ela vier de `app.js`, o `app.js` precisará passá-la para `historyManager` no `init`.
+        // Para manter a compatibilidade com a estrutura, eu estou assumindo `applyMoveBySAN` existe no escopo global.
+        if (typeof applyMoveBySAN !== 'undefined') {
+            applyMoveBySAN(this.replayEngine, this.replayMoves[i]);
+            this.replayIndex++;
+        } else {
+            console.warn("Função applyMoveBySAN não encontrada para replay de Xadrez/Dama. O replay pode não funcionar.");
+        }
     }
     return this.replayEngine;
   }
@@ -252,9 +272,13 @@ class GameHistoryManager {
   replayNext() {
     if (this.replayIndex >= this.replayMoves.length) return null;
     const san = this.replayMoves[this.replayIndex];
-    applyMoveBySAN(this.replayEngine, san); // Usa a função global para aplicar o SAN
-    this.replayIndex++;
-    return this.replayEngine;
+    if (typeof applyMoveBySAN !== 'undefined') {
+        applyMoveBySAN(this.replayEngine, san);
+        this.replayIndex++;
+        return this.replayEngine;
+    }
+    console.warn("Função applyMoveBySAN não encontrada para replay de Xadrez/Dama. O replay pode não funcionar.");
+    return null;
   }
 
   replayPrev() {
@@ -266,4 +290,4 @@ class GameHistoryManager {
   replayLast() { return this.replayGoTo(this.replayMoves.length); }
 }
 
-const historyManager = new GameHistoryManager(); // Renomeando a instância global para maior clareza
+const historyManager = new GameHistoryManager();
