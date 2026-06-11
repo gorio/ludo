@@ -1,95 +1,130 @@
-/* =====================================================
-   HISTORY MANAGER - Gerencia o histórico de jogos
-===================================================== */
+// history.js
 class HistoryManager {
-  constructor(firebaseDbInstance) {
-    this.db = firebaseDbInstance;
+  constructor() {
+    this.db = null; // Instância do Firebase Database
+  }
+
+  setFirebaseDb(dbInstance) {
+    this.db = dbInstance;
   }
 
   /**
-   * Salva um registro de jogo concluído (Ludo) no histórico do usuário e na lista de jogos globais.
-   * @param {object} gameData Dados do jogo a serem salvos.
-   * @param {string} gameData.gameType 'ludo'
-   * @param {string} gameData.uid ID do usuário.
-   * @param {boolean} gameData.isAnonymous Se o usuário é anônimo.
-   * @param {string} gameData.mode 'ai' ou 'multiplayer'
-   * @param {Array<object>} gameData.players Array de objetos Player do engine.
-   * @param {string} gameData.myColor A cor do jogador atual.
-   * @param {string} gameData.result 'win', 'loss', 'draw', 'resigned'
-   * @param {number} gameData.endedAt Timestamp do fim do jogo.
-   * @param {string} [gameData.roomCode] Código da sala para jogos multiplayer.
-   * @param {string} [gameData.difficulty] Dificuldade da IA para jogos contra IA.
-   * @returns {Promise<string|null>} A chave do jogo salvo ou null em caso de erro.
+   * Serializa o estado do jogo para salvar no histórico.
+   * Adapta o formato para o Ludo.
+   * @param {object} engineState O estado do LudoEngine.serialize()
+   * @param {Array<object>} playersInfo Informações dos jogadores na partida.
+   * @param {string} myUid ID do usuário atual.
+   * @returns {object} Dados formatados para o histórico.
+   */
+  _formatLudoHistoryEntry(engineState, playersInfo, myUid, roomCode = null) {
+      const normalizedPlayers = playersInfo.map(p => ({
+          // Garante que o jogador atual seja marcado como 'isMe' para facilitar a exibição
+          isMe: p.id === myUid,
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          isAI: p.isAI || false,
+          photoURL: p.photoURL || null
+      }));
+
+      // Determina o resultado para o jogador `myUid`
+      let result = 'draw'; // Ludo raramente tem empate, mas é um padrão neutro
+      if (engineState.winner) {
+          const winnerPlayer = playersInfo.find(p => p.color === engineState.winner);
+          if (winnerPlayer && winnerPlayer.id === myUid) {
+              result = 'win';
+          } else if (winnerPlayer && winnerPlayer.id !== myUid) {
+              result = 'loss';
+          } else if (winnerPlayer && winnerPlayer.isAI && myUid) {
+                result = 'loss'; // Se a IA venceu e eu sou humano, eu perdi.
+          }
+      } else if (engineState.status === 'resigned' || engineState.status === 'abandoned') {
+          // Se eu desisti, é perda. Se outro jogador desistiu, é vitória.
+          const resigningPlayer = playersInfo.find(p => p.id === myUid);
+          const winnerOfResignation = playersInfo.find(p => p.color === engineState.winner);
+
+          if (resigningPlayer && engineState.winner !== resigningPlayer.color) {
+            // Eu desisti, ou abandonei, e não fui declarado vencedor
+            result = 'loss';
+          } else if (winnerOfResignation && winnerOfResignation.id === myUid) {
+            // Outro jogador desistiu, e eu fui declarado vencedor
+            result = 'win';
+          }
+      }
+
+
+      return {
+          gameType: 'ludo',
+          endedAt: Date.now(),
+          mode: engineState.mode, // 'ai' ou 'multiplayer'
+          players: normalizedPlayers,
+          myColor: playersInfo.find(p => p.id === myUid)?.color || null,
+          result: result,
+          roomCode: roomCode, // Se for multiplayer
+          state: engineState // Salva o estado final completo para possível replay (opcional para Ludo)
+      };
+  }
+
+  /**
+   * Salva uma partida de Ludo no histórico do usuário.
+   * @param {object} gameData
+   *   - gameType: 'ludo'
+   *   - uid: ID do usuário
+   *   - isAnonymous: bool
+   *   - mode: 'ai' | 'multiplayer'
+   *   - players: Array de objetos {id, name, color, isAI, photoURL}
+   *   - myColor: Cor do jogador no jogo
+   *   - result: 'win' | 'loss' | 'draw' | 'resigned'
+   *   - endedAt: timestamp
+   *   - roomCode: string (opcional para multiplayer)
+   *   - state: objeto serializado do engine (opcional)
    */
   async saveGame(gameData) {
-    if (gameData.isAnonymous) {
-      console.log('Não é possível salvar histórico para usuários anônimos.');
-      return null;
-    }
-    if (!gameData.uid) {
-      console.error('UID do usuário é necessário para salvar o jogo.');
-      return null;
-    }
+      if (!this.db || !gameData.uid || gameData.isAnonymous) return;
 
-    try {
-      const myPlayer = gameData.players.find(p => p.id === gameData.uid);
-      const opponentPlayers = gameData.players.filter(p => p.id !== gameData.uid);
+      const userGameRef = this.db.ref(`users/${gameData.uid}/ludoGames`).push();
+      await userGameRef.set({
+          endedAt: gameData.endedAt,
+          mode: gameData.mode,
+          players: gameData.players,
+          myColor: gameData.myColor,
+          result: gameData.result,
+          roomCode: gameData.roomCode,
+          state: gameData.state || null // Estado do jogo. Opcional para economia de dados.
+      });
 
-      const record = {
-        gameType: gameData.gameType,
-        uid: gameData.uid,
-        mode: gameData.mode,
-        players: gameData.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            color: p.color,
-            isAI: p.isAI || false,
-            photoURL: p.photoURL || null,
-            isMe: p.id === gameData.uid // Adiciona uma flag para o próprio jogador no registro
-        })),
-        myColor: myPlayer ? myPlayer.color : 'unknown', // Cor do jogador no jogo
-        result: gameData.result,
-        endedAt: gameData.endedAt,
-        roomCode: gameData.roomCode || null,
-        difficulty: gameData.difficulty || null,
-        // Adicione outros dados relevantes do estado final do jogo, se necessário
-      };
-
-      // Salva na lista de jogos do usuário
-      const userGamesRef = this.db.ref(`users/${gameData.uid}/games`);
-      const newGameRef = userGamesRef.push();
-      await newGameRef.set(record);
-
-      console.log(`Jogo Ludo salvo para ${gameData.uid}. ID: ${newGameRef.key}`);
-      return newGameRef.key;
-
-    } catch (e) {
-      console.error('Erro ao salvar jogo de Ludo:', e);
-      return null;
-    }
+      // Atualiza as estatísticas do usuário
+      const userStatsRef = this.db.ref(`users/${gameData.uid}`);
+      await userStatsRef.update({
+          ludoGamesPlayed: firebase.database.ServerValue.increment(1),
+          ludoWins: firebase.database.ServerValue.increment(gameData.result === 'win' ? 1 : 0),
+          ludoLosses: firebase.database.ServerValue.increment(gameData.result === 'loss' ? 1 : 0),
+          ludoDraws: firebase.database.ServerValue.increment(gameData.result === 'draw' ? 1 : 0)
+      });
   }
 
   /**
-   * Carrega o histórico de jogos Ludo de um usuário.
+   * Carrega o histórico de partidas de Ludo para um usuário.
    * @param {string} uid ID do usuário.
-   * @returns {Promise<Array<object>>} Array de objetos de jogos.
+   * @returns {Array<object>} Lista de jogos.
    */
   async loadLudoHistory(uid) {
-    if (!uid) return [];
+    if (!this.db || !uid) return [];
     try {
-      const snap = await this.db.ref(`users/${uid}/games`)
-        .orderByChild('endedAt')
-        .limitToLast(50) // Limita aos 50 jogos mais recentes
-        .once('value');
-      const rawGames = snap.val();
-      if (!rawGames) return [];
-
-      const games = Object.entries(rawGames)
-        .map(([id, data]) => ({ id, ...data }))
-        .filter(game => game.gameType === 'ludo') // Filtra apenas jogos de Ludo
-        .sort((a,b) => b.endedAt - a.endedAt); // Ordena do mais recente para o mais antigo
-
-      return games;
+      const snapshot = await this.db.ref(`users/${uid}/ludoGames`).orderByChild('endedAt').limitToLast(50).once('value');
+      const games = [];
+      snapshot.forEach(childSnapshot => {
+        const game = childSnapshot.val();
+        // Marca o jogador atual como 'isMe' para a UI
+        if (game.players) {
+            game.players.forEach(p => {
+                if (p.id === uid) p.isMe = true;
+                else p.isMe = false;
+            });
+        }
+        games.push({ id: childSnapshot.key, ...game });
+      });
+      return games.reverse(); // Mais recentes primeiro
     } catch (e) {
       console.error('Erro ao carregar histórico de Ludo:', e);
       return [];
@@ -97,53 +132,56 @@ class HistoryManager {
   }
 
   /**
-   * Salva o estado de uma sala multiplayer de Ludo (usado para partidas ao vivo).
-   * @param {string} roomCode Código da sala.
-   * @param {object} roomData Dados da sala.
+   * Salva uma partida de Ludo como "ao vivo" (multiplayer ativo)
+   * @param {string} roomCode
+   * @param {object} roomData
    */
   async saveLudoLiveGame(roomCode, roomData) {
-    try {
-      await this.db.ref(`live_ludo_rooms/${roomCode}`).set(roomData);
-    } catch (e) {
-      console.error('Erro ao salvar partida Ludo ao vivo:', e);
-    }
+      if (!this.db || !roomCode || !roomData) return;
+      await this.db.ref(`ludoLiveGames/${roomCode}`).set({
+          id: roomCode,
+          createdAt: roomData.createdAt,
+          gameType: 'ludo',
+          players: Object.values(roomData.playerColors).filter(p => p.id !== null).map(p => ({
+              id: p.id,
+              name: p.name,
+              color: p.color,
+              isAI: p.isAI,
+              photoURL: p.photoURL
+          })),
+          status: roomData.status,
+          hostUid: roomData.hostId
+      });
   }
 
   /**
-   * Remove uma sala de Ludo da lista de partidas ao vivo.
-   * @param {string} roomCode Código da sala.
+   * Remove uma partida de Ludo da lista de "ao vivo".
+   * @param {string} roomCode
    */
   async removeLudoLiveGame(roomCode) {
-    try {
-      await this.db.ref(`live_ludo_rooms/${roomCode}`).remove();
-    } catch (e) {
-      console.error('Erro ao remover partida Ludo ao vivo:', e);
-    }
+      if (!this.db || !roomCode) return;
+      await this.db.ref(`ludoLiveGames/${roomCode}`).remove();
   }
 
   /**
-   * Carrega todas as partidas de Ludo ao vivo.
-   * @returns {Promise<Array<object>>}
+   * Carrega partidas de Ludo ao vivo.
+   * @returns {Array<object>}
    */
   async loadLudoLiveGames() {
-    try {
-      const snap = await this.db.ref('live_ludo_rooms')
-        .orderByChild('createdAt')
-        .once('value');
-      const rawRooms = snap.val();
-      if (!rawRooms) return [];
-
-      return Object.entries(rawRooms)
-        .map(([id, data]) => ({ id, ...data }))
-        .filter(room => room.status === 'playing' || room.status === 'waiting' || room.status === 'resumed') // Filtra apenas jogos ativos
-        .sort((a,b) => b.createdAt - a.createdAt);
-    } catch (e) {
-      console.error('Erro ao carregar partidas de Ludo ao vivo:', e);
-      return [];
-    }
+      if (!this.db) return [];
+      try {
+          const snapshot = await this.db.ref('ludoLiveGames').orderByChild('createdAt').once('value');
+          const games = [];
+          snapshot.forEach(childSnapshot => {
+              const game = childSnapshot.val();
+              if (game.status === 'waiting' || game.status === 'playing') {
+                  games.push({ id: childSnapshot.key, ...game });
+              }
+          });
+          return games.reverse(); // Mais recentes primeiro
+      } catch (e) {
+          console.error('Erro ao carregar partidas Ludo ao vivo:', e);
+          return [];
+      }
   }
-
-  // Métodos específicos para Xadrez/Dama (se coexistirem no projeto)
-  // Atualmente não são usados neste fluxo Ludo, mas podem ser adicionados aqui
-  // para futura expansão, mantendo HistoryManager coeso.
 }
