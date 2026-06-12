@@ -289,7 +289,7 @@
   <script src="history.js?v=20260612-0115"></script>
   <script src="ludoengine.js?v=20260612-0115"></script>
   <script src="ludoai.js?v=20260612-0115"></script>
-  <script src="app.js?v=20260612-0115"></script>
+  <script src="app.js?v=20260612-0125"></script>
   <script>
     function getHomeYardColor(row, col) {
       if (row >= 1 && row <= 4 && col >= 1 && col <= 4) return 'red';
@@ -330,6 +330,52 @@
         }
       }
     };
+
+    renderBoard = function() {
+      document.querySelectorAll('.pawn').forEach(pawn => pawn.remove());
+      if (!engine || !engine.players) return;
+
+      const pawnsByCell = new Map();
+      engine.players.forEach(function(player) {
+        player.pawns.forEach(function(pawn, index) {
+          if (pawn.finished) return;
+          const coords = pawnCoords(player, pawn, index);
+          if (!coords || !boardCells[coords[0]] || !boardCells[coords[0]][coords[1]]) return;
+          const key = coords[0] + ',' + coords[1];
+          if (!pawnsByCell.has(key)) pawnsByCell.set(key, []);
+          pawnsByCell.get(key).push({ player, index, coords });
+        });
+      });
+
+      pawnsByCell.forEach(function(items) {
+        const layout = getPawnCellLayout(items.length);
+        items.forEach(function(item, stackIndex) {
+          const slot = layout.slots[stackIndex] || layout.slots[0];
+          const pawnEl = document.createElement('button');
+          pawnEl.type = 'button';
+          pawnEl.className = 'pawn ' + item.player.color;
+          pawnEl.dataset.color = item.player.color;
+          pawnEl.dataset.index = item.index;
+          pawnEl.style.width = layout.size + '%';
+          pawnEl.style.height = layout.size + '%';
+          pawnEl.style.left = slot[0] + '%';
+          pawnEl.style.top = slot[1] + '%';
+          pawnEl.textContent = window.LUDO_CONSTANTS.PIECES_SYMBOLS[item.player.color] || '';
+          if (isMyTurn() && engine.phase === 'move' && engine.getValidMoves().includes(item.index)) {
+            pawnEl.classList.add('movable');
+            pawnEl.addEventListener('click', () => doMovePawn(item.index));
+          }
+          boardCells[item.coords[0]][item.coords[1]].appendChild(pawnEl);
+        });
+      });
+    };
+
+    function getPawnCellLayout(count) {
+      if (count <= 1) return { size: 72, slots: [[14, 14]] };
+      if (count === 2) return { size: 44, slots: [[5, 28], [51, 28]] };
+      if (count === 3) return { size: 40, slots: [[7, 7], [53, 7], [30, 53]] };
+      return { size: 38, slots: [[8, 8], [54, 8], [8, 54], [54, 54]] };
+    }
 
     onRollDiceClick = async function() {
       if (!isMyTurn() || engine.phase !== 'roll' || aiThinking) return;
