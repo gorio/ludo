@@ -6,6 +6,42 @@
   <title>Ludo Online</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>🎲</text></svg>">
   <link rel="stylesheet" href="style.css" />
+  <style>
+    .home-yard {
+      background: #f7efd9;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+    }
+    .base-pocket::before {
+      content: '';
+      width: 74%;
+      height: 74%;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.88);
+      border: 3px solid currentColor;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.18);
+    }
+    .red-pocket { color: var(--ludo-red); }
+    .blue-pocket { color: var(--ludo-blue); }
+    .green-pocket { color: var(--ludo-green); }
+    .yellow-pocket { color: var(--ludo-yellow); }
+    .red-entry,
+    .blue-entry,
+    .green-entry,
+    .yellow-entry {
+      box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35);
+    }
+    .center-final {
+      background: conic-gradient(from 45deg, var(--ludo-blue) 0 25%, var(--ludo-green) 0 50%, var(--ludo-yellow) 0 75%, var(--ludo-red) 0 100%);
+    }
+    .center-final::after {
+      content: '';
+      width: 52%;
+      height: 52%;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+  </style>
 </head>
 <body>
 
@@ -239,5 +275,60 @@
   <script src="ludoengine.js"></script>
   <script src="ludoai.js"></script>
   <script src="app.js"></script>
+  <script>
+    function getHomeYardColor(row, col) {
+      if (row >= 1 && row <= 4 && col >= 1 && col <= 4) return 'red';
+      if (row >= 1 && row <= 4 && col >= 10 && col <= 13) return 'blue';
+      if (row >= 10 && row <= 13 && col >= 10 && col <= 13) return 'green';
+      if (row >= 10 && row <= 13 && col >= 1 && col <= 4) return 'yellow';
+      return null;
+    }
+
+    function getBasePocketColor(row, col) {
+      for (const color of window.LUDO_CONSTANTS.LUDO_COLORS) {
+        if (window.LUDO_CONSTANTS.BASE_POSITIONS[color].some(pos => pos[0] === row && pos[1] === col)) {
+          return color;
+        }
+      }
+      return null;
+    }
+
+    buildBoardDOM = function() {
+      const board = gel('ludo-board');
+      if (!board) return;
+      board.innerHTML = '';
+      boardCells = [];
+      for (let row = 0; row < window.LUDO_CONSTANTS.BOARD_SIZE; row++) {
+        boardCells[row] = [];
+        for (let col = 0; col < window.LUDO_CONSTANTS.BOARD_SIZE; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'ludo-cell ' + getCellZone(row, col);
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+          const homeColor = getHomeYardColor(row, col);
+          const pocketColor = getBasePocketColor(row, col);
+          if (homeColor) cell.classList.add('home-yard', homeColor + '-yard');
+          if (pocketColor) cell.classList.add('base-pocket', pocketColor + '-pocket');
+          if (isSafeCell(row, col)) cell.classList.add('safe');
+          board.appendChild(cell);
+          boardCells[row][col] = cell;
+        }
+      }
+    };
+
+    onRollDiceClick = async function() {
+      if (!isMyTurn() || engine.phase !== 'roll' || aiThinking) return;
+      engine.rollDice();
+      renderGame();
+      await syncGameState();
+
+      if (engine.status === 'finished') {
+        await finishLocalGame('win', currentAuthManager.displayName + ' venceu a partida!');
+        return;
+      }
+
+      maybeRunAI();
+    };
+  </script>
 </body>
 </html>
