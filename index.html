@@ -308,6 +308,155 @@
       return null;
     }
 
+    function normalizeLudoEngineState(targetEngine) {
+      if (!targetEngine || !Array.isArray(targetEngine.players)) return;
+      const pathCoords = window.LUDO_CONSTANTS.PATH_COORDS || [];
+      const homePaths = window.LUDO_CONSTANTS.HOME_PATHS || {};
+      const piecesPerPlayer = window.LUDO_CONSTANTS.PIECES_PER_PLAYER || 4;
+
+      if (!Number.isInteger(targetEngine.activePlayerIndex) ||
+          targetEngine.activePlayerIndex < 0 ||
+          targetEngine.activePlayerIndex >= targetEngine.players.length) {
+        targetEngine.activePlayerIndex = 0;
+      }
+
+      targetEngine.players.forEach(function(player) {
+        if (!Array.isArray(player.pawns)) player.pawns = [];
+        while (player.pawns.length < piecesPerPlayer) {
+          player.pawns.push({ pos: -1, homeStep: -1, finished: false });
+        }
+        player.score = 0;
+
+        player.pawns.forEach(function(pawn) {
+          if (!pawn || typeof pawn !== 'object') return;
+          if (!Number.isInteger(pawn.pos)) pawn.pos = -1;
+          if (!Number.isInteger(pawn.homeStep)) pawn.homeStep = -1;
+
+          const homePath = homePaths[player.color] || [];
+          const validHome = pawn.homeStep >= 0 && pawn.homeStep < homePath.length && Boolean(homePath[pawn.homeStep]);
+
+          if (pawn.finished) {
+            pawn.pos = -2;
+            pawn.homeStep = window.LUDO_CONSTANTS.HOME_PATH_LENGTH - 1;
+            player.score += 1;
+            return;
+          }
+
+          if (pawn.pos === -2 || pawn.homeStep !== -1) {
+            if (validHome) {
+              pawn.pos = -2;
+            } else {
+              pawn.pos = -1;
+              pawn.homeStep = -1;
+            }
+            return;
+          }
+
+          if (pawn.pos !== -1 && !pathCoords[pawn.pos]) {
+            pawn.pos = -1;
+            pawn.homeStep = -1;
+          }
+        });
+      });
+    }
+
+    const originalDeserialize = LudoEngine.prototype.deserialize;
+    LudoEngine.prototype.deserialize = function(serializedState) {
+      originalDeserialize.call(this, serializedState);
+      normalizeLudoEngineState(this);
+    };
+
+    LudoEngine.prototype._calculateNewPosition = function(player, pawn, dice) {
+      const constants = window.LUDO_CONSTANTS;
+      const pathCoords = constants.PATH_COORDS || [];
+      const homePath = player && constants.HOME_PATHS[player.color];
+      if (!player || !pawn || !Number.isInteger(dice) || dice < 1) return { valid: false };
+      if (pawn.finished) return { valid: false };
+
+      if (pawn.pos === -2 || pawn.homeStep !== -1) {
+        if (!homePath || !Number.isInteger(pawn.homeStep) || !homePath[pawn.homeStep]) {
+          return { valid: false };
+        }
+        const newHomeStep = pawn.homeStep + dice;
+        if (newHomeStep < constants.HOME_PATH_LENGTH && homePath[newHomeStep]) {
+          return { valid: true, targetPos: newHomeStep, isHomePath: true };
+        }
+        return { valid: false };
+      }
+
+      if (pawn.pos === -1 || !pathCoords[pawn.pos]) return { valid: false };
+
+      const playerStartPos = constants.HOME_START_POS[player.color];
+      const finalEntryCoord = constants.FINAL_ENTRY_BOARD_POS[player.color];
+      if (!Number.isInteger(playerStartPos) || !finalEntryCoord) return { valid: false };
+
+      const finalEntryPathIndex = pathCoords.findIndex(function(coord) {
+        return coord[0] === finalEntryCoord[0] && coord[1] === finalEntryCoord[1];
+      });
+      if (finalEntryPathIndex === -1) return { valid: false };
+
+      const pathLength = constants.BOARD_STEPS;
+      const currentPathIndex = pawn.pos;
+      const relativeCurrentPos = (currentPathIndex - playerStartPos + pathLength) % pathLength;
+      const relativeFinalEntryPos = (finalEntryPathIndex - playerStartPos + pathLength) % pathLength;
+      const relativeNewPos = relativeCurrentPos + dice;
+
+      if (relativeCurrentPos <= relativeFinalEntryPos && relativeNewPos > relativeFinalEntryPos) {
+        const stepsIntoHomePath = relativeNewPos - relativeFinalEntryPos - 1;
+        if (stepsIntoHomePath >= 0 && stepsIntoHomePath < constants.HOME_PATH_LENGTH && homePath && homePath[stepsIntoHomePath]) {
+          return { valid: true, targetPos: stepsIntoHomePath, isHomePath: true };
+        }
+        return { valid: false };
+      }
+
+      const targetGlobalPathIndex = (currentPathIndex + dice) % pathLength;
+      return pathCoords[targetGlobalPathIndex]
+        ? { valid: true, targetPos: targetGlobalPathIndex, isHomePath: false }
+        : { valid: false };
+    };
+
+    LudoEngine.prototype.getValidMoves = function() {
+      normalizeLudoEngineState(this);
+      const player = this.activePlayer;
+      const moves = [];
+      if (!player || !Array.isArray(player.pawns)) return moves;
+
+      player.pawns.forEach((pawn, index) => {
+        if (!pawn || pawn.finished) return;
+
+        if (pawn.pos === -1) {
+          if (this.diceValue === 6) {
+            const startPos = window.LUDO_CONSTANTS.HOME_START_POS[player.color];
+            const isBlocked = player.pawns.some((otherPawn, otherIndex) =>
+              otherIndex !== index && otherPawn.pos === startPos && otherPawn.homeStep === -1
+            );
+            if (!isBlocked) moves.push(index);
+          }
+          return;
+        }
+
+        const newPosInfo = this._calculateNewPosition(player, pawn, this.diceValue);
+        if (!newPosInfo.valid) return;
+        if (!this._isOccupiedByOwnPawn(player, newPosInfo.targetPos, newPosInfo.isHomePath, index)) {
+          moves.push(index);
+        }
+      });
+
+      return moves;
+    };
+
+    const originalRollDice = LudoEngine.prototype.rollDice;
+    LudoEngine.prototype.rollDice = function() {
+      try {
+        normalizeLudoEngineState(this);
+        return originalRollDice.call(this);
+      } catch (err) {
+        console.error('Motor do Ludo recuperou um erro ao rolar o dado.', err);
+        this.logEvent(this.activePlayer ? this.activePlayer.color : 'neutral', 'Erro recuperado no turno. A vez foi passada para manter a partida ativa.');
+        this.nextTurn();
+      }
+    };
+
     buildBoardDOM = function() {
       const board = gel('ludo-board');
       if (!board) return;
