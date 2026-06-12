@@ -16,12 +16,12 @@
   --text-muted:#8892a4; /* Cor do texto secundário/neutro */
 
   /* Cores específicas de Xadrez (mantidas, mas não diretamente usadas no Ludo) */
-  --light-sq:  #f0d9b5; 
+  --light-sq:  #f0d9b5;
   --dark-sq:   #b58863;
-  --highlight: rgba(255,255,0,0.4); 
-  --move-hint: rgba(0,0,0,0.22); 
-  --selected:  rgba(20,85,30,0.55); 
-  --check:     rgba(220,20,60,0.55); 
+  --highlight: rgba(255,255,0,0.4);
+  --move-hint: rgba(0,0,0,0.22);
+  --selected:  rgba(20,85,30,0.55);
+  --check:     rgba(220,20,60,0.55);
 
   --radius:    12px; /* Raio de borda padrão */
   --shadow:    0 8px 32px rgba(0,0,0,0.45); /* Sombra padrão */
@@ -50,10 +50,10 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  display: flex; /* Permite header fixo e conteúdo rolável */
+  display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Alinha o conteúdo ao topo */
-  align-items: stretch; /* Estende para largura total */
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 /* ===== GLOBAL UI ELEMENTS & HELPERS ===== */
@@ -65,31 +65,34 @@ button, input[type="submit"] {
 }
 
 .content-wrapper {
-  flex: 1; /* Permite que o wrapper ocupe o espaço restante */
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Centraliza o conteúdo horizontalmente */
-  justify-content: center; /* Centraliza o conteúdo verticalmente */
-  min-height: calc(100vh - var(--header-height)); /* Ajusta altura para considerar header */
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--header-height, 0px)); /* Garante que o header-height seja 0 se não definido */
+  width: 100%; /* Adicionado para garantir que o wrapper ocupe a largura total */
 }
 
 /* Esconde todas as telas por padrão */
-.screen { display: none; width: 100%; }
-/* Apenas a tela com a classe 'active' é exibida */
-.screen.active { display: flex; flex-direction: column; /* ou row, dependendo do layout da tela específica */ }
-
-
-/* Usando flex-grow para .content-wrapper, as telas devem ter seu próprio alinhamento/justificação */
-#screen-auth, #screen-lobby, #screen-waiting, #screen-game, #screen-ludo-history, #screen-ludo-live-games {
+.screen {
+  display: none; /* Oculta por padrão */
+  width: 100%;
   flex: 1; /* Permite que as telas ocupem o espaço disponível */
 }
+/* Apenas a tela com a classe 'active' é exibida */
+.screen.active {
+  display: flex; /* Exibe a tela ativa */
+  /* As propriedades flex-direction, justify-content, align-items serão definidas por cada tela específica */
+}
 
-#screen-auth, #screen-lobby, #screen-waiting {
+/* Estilos específicos para cada tela ativa */
+#screen-auth.active, #screen-lobby.active, #screen-waiting.active {
   justify-content: center;
   align-items: center;
   padding: 24px;
 }
-#screen-game, #screen-ludo-history, #screen-ludo-live-games {
+#screen-game.active, #screen-ludo-history.active, #screen-ludo-live-games.active {
     /* São layouts mais complexos, o próprio conteúdo determina o alinhamento */
     justify-content: flex-start;
     align-items: center;
@@ -139,7 +142,6 @@ button, input[type="submit"] {
 .btn-small { padding: 7px 14px; font-size: 13px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 .btn-full { width: 100%; }
-
 
 /* ===== HEADER DO APP ===== */
 .app-header {
@@ -307,7 +309,7 @@ button, input[type="submit"] {
 .lobby-body {
     /* O content-wrapper já centraliza, então apenas defina o layout interno */
     flex-direction: column; /* Stack vertically for cards */
-    padding-top: var(--header-height); /* Espaço para o header */
+    padding-top: var(--header-height, 0px); /* Espaço para o header */
 }
 
 .lobby-container {
@@ -467,8 +469,8 @@ button, input[type="submit"] {
   margin-top: 15px;
   padding: 10px;
   background: rgba(255,255,255,0.03);
-  border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
 }
 
 .waiting-player-row {
@@ -496,7 +498,7 @@ button, input[type="submit"] {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100vh - var(--header-height, 0px));
 }
 
 .game-sidebar {
@@ -567,7 +569,6 @@ button, input[type="submit"] {
     /* cor de fundo definida via JS de acordo com a cor do jogador */
 }
 
-
 .player-info { flex: 1; display: flex; flex-direction: column; }
 .player-name { font-size: 15px; font-weight: 600; color: var(--text); }
 .player-score { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
@@ -599,7 +600,6 @@ button, input[type="submit"] {
   from { transform: scale(1); opacity: 0.7; }
   to { transform: scale(1.2); opacity: 1; }
 }
-
 
 .game-log-box {
     background: var(--surface);
@@ -641,7 +641,6 @@ button, input[type="submit"] {
 .log-entry.color-green { color: var(--ludo-green); }
 .log-entry.color-yellow { color: var(--ludo-yellow); }
 .log-entry.color-neutral { color: var(--text-muted); }
-
 
 .board-area {
   flex: 1; /* Permite que o tabuleiro ocupe o espaço restante */
@@ -688,10 +687,10 @@ button, input[type="submit"] {
 }
 
 /* Estilos para as bases */
-.zone-red-base { background-color: var(--ludo-red-dark); }
-.zone-blue-base { background-color: var(--ludo-blue-dark); }
-.zone-green-base { background-color: var(--ludo-green-dark); }
-.zone-yellow-base { background-color: var(--ludo-yellow-dark); }
+.red-base { background-color: var(--ludo-red-dark); }
+.blue-base { background-color: var(--ludo-blue-dark); }
+.green-base { background-color: var(--ludo-green-dark); }
+.yellow-base { background-color: var(--ludo-yellow-dark); }
 
 /* Estilos para corredores finais */
 .red-homepath { background-color: rgba(var(--ludo-red-dark), 0.5); }
@@ -700,7 +699,7 @@ button, input[type="submit"] {
 .yellow-homepath { background-color: rgba(var(--ludo-yellow-dark), 0.5); }
 
 /* Casa central (destino final) */
-.zone-center-final {
+.center-final {
   background-color: var(--text);
   border: 2px solid var(--accent2);
   clip-path: polygon(
@@ -718,8 +717,7 @@ button, input[type="submit"] {
     border-color: transparent;
 } */
 
-
-/* Casas de entrada para cada cor */
+/* Casas de Entrada (onde as peças vermelhas, azuis, etc. entram no caminho principal) */
 .red-entry { background-color: var(--ludo-red); }
 .blue-entry { background-color: var(--ludo-blue); }
 .green-entry { background-color: var(--ludo-green); }
@@ -775,7 +773,6 @@ button, input[type="submit"] {
   to { transform: scale(1.05); box-shadow: 0 0 10px currentColor; }
 }
 
-
 .game-controls {
   display: flex;
   gap: 15px;
@@ -819,7 +816,6 @@ button, input[type="submit"] {
   from { transform: translateY(0); }
   to { transform: translateY(-5px); }
 }
-
 
 /* ===== MODALS (Game Over) ===== */
 .modal {
@@ -872,7 +868,7 @@ button, input[type="submit"] {
   margin: 0 auto;
   padding: 32px 24px;
   gap: 24px;
-  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100vh - var(--header-height, 0px));
   width: 100%;
 }
 
@@ -966,7 +962,6 @@ button, input[type="submit"] {
 }
 .spectator-bar span { flex: 1; text-align: center; } /* Centraliza o texto no meio */
 
-
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .game-layout {
@@ -984,7 +979,6 @@ button, input[type="submit"] {
 
   .players-list-container { flex: 1; min-width: 250px; } /* Garante que a lista de jogadores tenha espaço */
   .game-log-box { flex: 1; min-width: 250px; } /* Garante que o log tenha espaço */
-
 
   .players-list {
     flex-direction: row; /* Cards dos jogadores lado a lado */
@@ -1033,7 +1027,6 @@ button, input[type="submit"] {
   .game-controls { flex-wrap: wrap; justify-content: center; }
   .game-controls .btn { flex: 1 1 auto; }
 }
-
 
 @media (max-width: 480px) {
     .lobby-container { padding: 32px 20px; gap: 25px; }
