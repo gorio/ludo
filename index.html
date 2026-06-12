@@ -20,12 +20,20 @@
     }
     .base-pocket::before {
       content: '';
-      width: 74%;
-      height: 74%;
+      position: absolute;
+      inset: 17%;
       border-radius: 50%;
-      background: rgba(255,255,255,0.88);
-      border: 3px solid currentColor;
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.18);
+      background: rgba(255,255,255,0.54);
+      border: 2px solid rgba(0,0,0,0.5);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.22);
+      z-index: 0;
+    }
+    .pawn {
+      position: absolute;
+      padding: 0;
+      line-height: 1;
+      appearance: none;
+      z-index: 3;
     }
     .red-pocket { color: var(--ludo-red); }
     .blue-pocket { color: var(--ludo-blue); }
