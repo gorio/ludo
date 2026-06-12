@@ -7,6 +7,13 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>🎲</text></svg>">
   <link rel="stylesheet" href="style.css" />
   <style>
+    .ludo-board {
+      border: 4px solid #050505;
+      box-shadow: var(--shadow), 0 0 0 2px rgba(255,255,255,0.08);
+    }
+    .ludo-cell {
+      border: 1.5px solid rgba(0,0,0,0.62);
+    }
     .home-yard {
       background: #f7efd9;
       box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
@@ -28,7 +35,7 @@
     .blue-entry,
     .green-entry,
     .yellow-entry {
-      box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35);
+      box-shadow: inset 0 0 0 3px rgba(255,255,255,0.36), inset 0 0 0 4.5px rgba(0,0,0,0.42);
     }
     .center-final {
       background: conic-gradient(from 45deg, var(--ludo-blue) 0 25%, var(--ludo-green) 0 50%, var(--ludo-yellow) 0 75%, var(--ludo-red) 0 100%);
