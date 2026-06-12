@@ -518,7 +518,7 @@ body {
 .red-base { background: var(--ludo-red-dark); }
 .blue-base { background: var(--ludo-blue-dark); }
 .green-base { background: var(--ludo-green-dark); }
-yellow-base { background: var(--ludo-yellow-dark); }
+.yellow-base { background: var(--ludo-yellow-dark); }
 .red-entry, .red-homepath { background: var(--ludo-red); }
 .blue-entry, .blue-homepath { background: var(--ludo-blue); }
 .green-entry, .green-homepath { background: var(--ludo-green); }
