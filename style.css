@@ -501,10 +501,10 @@ body {
   width: var(--ludo-board-size);
   height: var(--ludo-board-size);
   background: var(--surface2);
-  border: 2px solid rgba(255,255,255,0.12);
+  border: 4px solid #050505;
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 0 0 2px rgba(255,255,255,0.08);
   user-select: none;
 }
 .ludo-cell {
@@ -512,21 +512,72 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(0,0,0,0.62);
+}
+.red-base,
+.blue-base,
+.green-base,
+.yellow-base,
+.neutral-path,
+.red-entry,
+.blue-entry,
+.green-entry,
+.yellow-entry,
+.red-homepath,
+.blue-homepath,
+.green-homepath,
+.yellow-homepath {
+  box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.16);
 }
 .neutral-path { background: #f0d9b5; }
 .red-base { background: var(--ludo-red-dark); }
 .blue-base { background: var(--ludo-blue-dark); }
 .green-base { background: var(--ludo-green-dark); }
 .yellow-base { background: var(--ludo-yellow-dark); }
+.home-yard {
+  background: #f7efd9;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+}
+.base-pocket::before {
+  content: '';
+  width: 74%;
+  height: 74%;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.88);
+  border: 3px solid currentColor;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.18);
+}
+.red-pocket { color: var(--ludo-red); }
+.blue-pocket { color: var(--ludo-blue); }
+.green-pocket { color: var(--ludo-green); }
+.yellow-pocket { color: var(--ludo-yellow); }
 .red-entry, .red-homepath { background: var(--ludo-red); }
 .blue-entry, .blue-homepath { background: var(--ludo-blue); }
 .green-entry, .green-homepath { background: var(--ludo-green); }
 .yellow-entry, .yellow-homepath { background: var(--ludo-yellow); }
-.center-final { background: var(--surface); }
+.red-entry,
+.blue-entry,
+.green-entry,
+.yellow-entry {
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.36), inset 0 0 0 4.5px rgba(0,0,0,0.42);
+}
+.center-final {
+  background:
+    conic-gradient(
+      from 45deg,
+      var(--ludo-blue) 0 25%,
+      var(--ludo-green) 0 50%,
+      var(--ludo-yellow) 0 75%,
+      var(--ludo-red) 0 100%
+    );
+}
 .center-final::after {
-  content: '🏠';
-  font-size: calc(var(--ludo-cell-size) * 0.56);
+  content: '';
+  width: 52%;
+  height: 52%;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.85);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 .ludo-cell.safe::after {
   content: '★';
