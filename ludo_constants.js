@@ -18,12 +18,12 @@ window.LUDO_CONSTANTS = {
     red: '🔴', blue: '🔵', green: '🟢', yellow: '🟡'
   },
 
-  // Mapeamento de Cores para Posições Específicas do Tabuleiro
-  HOME_START_POS: { // Posição de entrada da base para o caminho principal (índice em PATH_COORDS)
-    red: 0,
-    blue: 13,
-    yellow: 26, // Ajustado para ser yellow, não green
-    green: 39  // Ajustado para ser green
+  // Mapeamento de cores para as posições de saída na trilha principal.
+  HOME_START_POS: {
+    red: 0,      // [6, 1]
+    blue: 13,    // [1, 8]
+    green: 28,   // [8, 13]
+    yellow: 41   // [13, 6]
   },
 
   ENTRY_POS: { // Posição (r, c) de onde a peça entra na trilha principal saindo da base (casa colorida)
@@ -33,27 +33,26 @@ window.LUDO_CONSTANTS = {
     yellow: [13, 6]
   },
 
-  FINAL_ENTRY_BOARD_POS: { // Posição (r,c) da casa na trilha principal que dá acesso ao corredor final (path_home)
-    red:    [7, 6],
-    blue:   [6, 7],
-    green:  [8, 7],
-    yellow: [7, 8]
+  // Última casa da trilha principal antes de entrar no corredor final de cada cor.
+  FINAL_ENTRY_BOARD_POS: {
+    red:    [7, 0],
+    blue:   [0, 7],
+    green:  [7, 14],
+    yellow: [14, 7]
   },
 
   // Casas seguras (estrelas) no caminho principal.
-  // Estes são índices na PATH_COORDS (geralmente são a 1ª casa da trilha e de 8 em 8 casas)
-  SAFE_SQUARES: [0, 8, 13, 21, 26, 34, 39, 47], // Corrigido, o Ludo tem casas seguras nas entradas e de 8 em 8 casas.
+  SAFE_SQUARES: [0, 8, 13, 21, 26, 34, 39, 47],
 
   // Coordenadas (row, col) para as células da base de cada cor (4 posições para 4 peças)
   BASE_POSITIONS: {
-    red:    [[1,1], [1,2], [2,1], [2,2]], // Base Vermelha (canto superior esquerdo do jogador vermelho)
-    blue:   [[1,12], [1,13], [2,12], [2,13]], // Base Azul
-    green:  [[12,12], [12,13], [13,12], [13,13]], // Base Verde
-    yellow: [[12,1], [12,2], [13,1], [13,2]]  // Base Amarela
+    red:    [[1,1], [1,2], [2,1], [2,2]],
+    blue:   [[1,12], [1,13], [2,12], [2,13]],
+    green:  [[12,12], [12,13], [13,12], [13,13]],
+    yellow: [[12,1], [12,2], [13,1], [13,2]]
   },
 
   // Lista de 52 coordenadas do caminho principal, no sentido anti-horário.
-  // Inicia na casa de saída do Vermelho (índice 0, que é [6,1]), e segue o tabuleiro.
   PATH_COORDS: [
     // Caminho Vermelho (0-4)
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
@@ -68,12 +67,11 @@ window.LUDO_CONSTANTS = {
   ],
 
   // Corredores finais de cada cor (Home Paths)
-  // São 6 casas, de 0 a 5, onde 5 é a última antes da casa central (casa 7,7).
   HOME_PATHS: {
-    red:    [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]], // Sentido: esquerda para direita
-    blue:   [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]], // Sentido: cima para baixo
-    green:  [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]], // Sentido: direita para esquerda
-    yellow: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]]  // Sentido: baixo para cima
+    red:    [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]],
+    blue:   [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]],
+    green:  [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]],
+    yellow: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]]
   },
 
   // Símbolo para a casa central do tabuleiro (destino final)
